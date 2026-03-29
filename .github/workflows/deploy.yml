@@ -3,24 +3,19 @@ on:
   push:
     branches:
       - main
-
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      
+      # Langkah ini akan cipta fail config secara automatik masa deploy
+      - name: Create Firebase Config
+        run: echo "${{ secrets.FIREBASE_CONFIG_CONTENT }}" > firebase-config.js
 
-      - name: Create Firebase Config File
-        # Cara ni lebih selamat sebab dia guna format JSON yang bersih
-        run: |
-          echo "const firebaseConfig = ${{ secrets.FIREBASE_CONFIG }};" > firebase-config.js
-          echo "export default firebaseConfig;" >> firebase-config.js
-
-      - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
+      - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KXGUARD }}'
           channelId: live
           projectId: ketickxguard
