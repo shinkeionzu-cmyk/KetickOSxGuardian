@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ms" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Accounting & Finance | KETICK OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; min-height: 100vh; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .card-income { border-top: 3px solid #10b981; background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, transparent 100%); }
+        .card-expense { border-top: 3px solid #ef4444; background: linear-gradient(180deg, rgba(239, 68, 68, 0.05) 0%, transparent 100%); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        @keyframes pulse-red { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } }
+        .animate-alert { animation: pulse-red 1.5s infinite; }
+    </style>
+</head>
+<body class="p-4 lg:p-8 no-scrollbar pb-24">
+
+    <div class="mb-8 flex justify-between items-start px-2">
+        <div>
+            <h2 class="text-2xl font-black tracking-tighter uppercase italic text-blue-500">Forensic <span class="text-white">Finance</span></h2>
+            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1 italic">Audit Trail & Digital Ledger</p>
+        </div>
+        <div id="fraud-indicator" class="hidden flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-full animate-alert">
+            <i class="fas fa-shield-virus text-red-500 text-[10px]"></i>
+            <span class="text-[8px] font-black text-red-500 uppercase tracking-widest">Anomali Dikesan</span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="p-6 rounded-[2rem] glass card-income relative overflow-hidden group">
+            <p class="text-slate-500 text-[9px] font-black uppercase tracking-widest mb-1">Total Income</p>
+            <h3 class="text-2xl font-black text-emerald-500 tracking-tight" id="total-income">RM 0.00</h3>
+            <i class="fas fa-arrow-up-right-dots absolute right-[-10px] bottom-[-10px] text-5xl opacity-5 -rotate-12 group-hover:opacity-10 transition-all"></i>
+        </div>
+        <div class="p-6 rounded-[2rem] glass card-expense relative overflow-hidden group">
+            <p class="text-slate-500 text-[9px] font-black uppercase tracking-widest mb-1">Total Expenses</p>
+            <h3 class="text-2xl font-black text-red-500 tracking-tight" id="total-expenses">RM 0.00</h3>
+            <i class="fas fa-arrow-down-left-dots absolute right-[-10px] bottom-[-10px] text-5xl opacity-5 -rotate-12 group-hover:opacity-10 transition-all"></i>
+        </div>
+        <div class="p-6 rounded-[2rem] glass border-t-3 border-t-blue-600 relative overflow-hidden group">
+            <p class="text-slate-500 text-[9px] font-black uppercase tracking-widest mb-1">Net Profit</p>
+            <h3 class="text-2xl font-black text-blue-500 tracking-tight" id="net-profit">RM 0.00</h3>
+            <i class="fas fa-chart-pie absolute right-[-10px] bottom-[-10px] text-5xl opacity-5 -rotate-12 group-hover:opacity-10 transition-all"></i>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="lg:col-span-2 glass p-6 rounded-[2.5rem] border border-white/5">
+            <div class="flex justify-between items-center mb-6 px-2">
+                <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Live Cashflow Flux</p>
+                <div class="flex gap-2">
+                    <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                    <span class="w-2 h-2 rounded-full bg-slate-800"></span>
+                </div>
+            </div>
+            <canvas id="financeChart" height="130"></canvas>
+        </div>
+        
+        <div class="glass p-6 rounded-[2.5rem] border border-amber-500/10 flex flex-col justify-between min-h-[250px]">
+            <div>
+                <p class="text-[10px] font-black text-amber-500 uppercase mb-4 tracking-widest flex items-center gap-2">
+                    <i class="fas fa-brain"></i> Risk Analysis (AI)
+                </p>
+                <div id="risk-logs" class="space-y-3 text-[10px] font-bold text-slate-400 italic">
+                    <p class="animate-pulse text-slate-600">Menganalisis integriti data...</p>
+                </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
+                <p class="text-[8px] text-slate-600 uppercase font-black tracking-widest">Integriti Ledger:</p>
+                <span id="last-check" class="text-[8px] font-black text-emerald-500 uppercase">Verified</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-8 p-6 rounded-[2.5rem] glass border border-white/5">
+        <h2 class="text-[10px] font-black mb-6 flex items-center gap-2 uppercase tracking-[0.2em] italic text-blue-400">
+            <i class="fas fa-plus-circle"></i> Rekod Transaksi Berautoriti
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <input type="text" id="desc" placeholder="Keterangan" class="p-4 rounded-2xl bg-slate-900 border border-white/5 outline-none focus:border-blue-500 text-xs text-white uppercase font-bold">
+            <input type="number" id="amount" placeholder="Jumlah (RM)" class="p-4 rounded-2xl bg-slate-900 border border-white/5 outline-none focus:border-emerald-500 text-xs text-white font-black">
+            <select id="category" class="p-4 rounded-2xl bg-slate-900 border border-white/5 outline-none text-[10px] text-slate-400 font-bold uppercase">
+                <option value="LAIN-LAIN">Kategori</option>
+                <option value="GAJI">Gaji Staff</option>
+                <option value="SEWA">Sewa Premis</option>
+                <option value="STOK">Pembelian Stok</option>
+                <option value="UTILITI">Utiliti</option>
+                <option value="MARKETING">Marketing</option>
+                <option value="JUALAN">Hasil Jualan</option>
+            </select>
+            <select id="type" class="p-4 rounded-2xl bg-slate-900 border border-white/5 outline-none text-[10px] text-slate-400 font-bold uppercase">
+                <option value="income">Income (+)</option>
+                <option value="expense">Expense (-)</option>
+            </select>
+            <button onclick="addTransaction()" id="saveBtn" class="bg-blue-600 hover:bg-blue-700 p-4 rounded-2xl font-black transition text-[9px] uppercase tracking-widest shadow-lg shadow-blue-900/20 active:scale-95">
+                Commit Entry
+            </button>
+        </div>
+    </div>
+
+    <div class="rounded-[2.5rem] glass border border-white/5 overflow-hidden">
+        <div class="p-6 border-b border-white/5 flex justify-between items-center bg-white/2">
+            <h2 class="font-black uppercase text-[10px] tracking-widest text-slate-500">Master Ledger Ledger</h2>
+            <div class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <p id="syncStatus" class="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Secure Sync Active</p>
+            </div>
+        </div>
+        <div id="transaction-list" class="divide-y divide-white/5 max-h-[500px] overflow-y-auto no-scrollbar">
+            <div class="p-10 text-center text-slate-600 animate-pulse text-[10px] font-black uppercase italic">Menyambung ke Forensic Engine...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import firebaseConfig from '../firebase-config.js';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.fs = { doc, onSnapshot, collection, addDoc, deleteDoc, query, orderBy, serverTimestamp };
+
+        startLiveSync();
+    </script>
+
+    <script>
+        let myChart;
+        let lastAmt = 0;
+
+        function getSysUser() {
+            try { return window.parent.getSystemUser(); } catch(e) { return { name: "A. Auditor", role: "Superuser" }; }
+        }
+
+        async function reportToGuardian(aktiviti, detail, level = "KRITIKAL") {
+            const user = getSysUser();
+            await window.fs.addDoc(window.fs.collection(window.db, "audit_logs"), {
+                staf: user.name,
+                peranan: user.role,
+                aktiviti: aktiviti,
+                detail: detail,
+                tahap: level,
+                timestamp: window.fs.serverTimestamp()
+            });
+            document.getElementById('fraud-indicator').classList.remove('hidden');
+        }
+
+        function initChart(labels, dataPoints) {
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            if(myChart) myChart.destroy();
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Net Balance',
+                        data: dataPoints,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                        fill: true,
+                        tension: 0.5,
+                        borderWidth: 3,
+                        pointRadius: 0,
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { display: false },
+                        x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 8, weight: 'bold' } } }
+                    }
+                }
+            });
+        }
+
+        function startLiveSync() {
+            if(!window.db) return setTimeout(startLiveSync, 500);
+
+            const q = window.fs.query(window.fs.collection(window.db, "accounting"), window.fs.orderBy("createdAt", "desc"));
+            window.fs.onSnapshot(q, snap => {
+                const list = document.getElementById('transaction-list');
+                const riskLogs = document.getElementById('risk-logs');
+                let income = 0; let expense = 0; let html = "";
+                let chartLabels = []; let chartData = []; let riskAlerts = [];
+
+                if(snap.empty) {
+                    list.innerHTML = '<div class="p-16 text-center text-slate-800 text-[10px] font-black uppercase italic">Tiada Rekod Transaksi</div>';
+                    initChart(['Mula'], [0]); return;
+                }
+
+                snap.forEach(docSnap => {
+                    const tx = docSnap.data();
+                    const amt = parseFloat(tx.amount || 0);
+                    
+                    // Forensic Analysis
+                    if (amt > 5000) riskAlerts.push(`Nilai Tinggi: RM${amt.toFixed(2)}`);
+                    if (amt === lastAmt && amt > 0) riskAlerts.push(`Potensi Duplicate: RM${amt.toFixed(2)}`);
+                    lastAmt = amt;
+
+                    if(tx.type === 'income') income += amt; else expense += amt;
+
+                    const dateObj = tx.createdAt ? tx.createdAt.toDate() : new Date();
+                    const dateDisplay = dateObj.toLocaleDateString('ms-MY', {day:'2-digit', month:'short'});
+
+                    if (chartLabels.length < 10) {
+                        chartLabels.unshift(dateDisplay); 
+                        chartData.unshift(income - expense);
+                    }
+
+                    html += `
+                        <div class="p-5 flex justify-between items-center hover:bg-white/2 transition group">
+                            <div class="flex items-center gap-4">
+                                <div class="w-1 h-8 ${tx.type === 'income' ? 'bg-emerald-500' : 'bg-red-500'} rounded-full opacity-40 group-hover:opacity-100 transition-all"></div>
+                                <div>
+                                    <p class="font-black text-[11px] uppercase tracking-tighter text-slate-200 italic">${tx.desc} 
+                                    <span class="ml-2 text-[7px] bg-slate-800 px-2 py-0.5 rounded-full text-blue-400 border border-white/5 font-black uppercase tracking-widest">${tx.category}</span></p>
+                                    <p class="text-[8px] text-slate-600 font-bold uppercase tracking-widest mt-1">${dateDisplay} • BY ${tx.verifiedBy}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-6">
+                                <p class="font-black text-xs ${tx.type === 'income' ? 'text-emerald-500' : 'text-red-400'} tracking-tight">${tx.type === 'income' ? '+' : '-'} RM${amt.toFixed(2)}</p>
+                                <button onclick="secureDelete('${docSnap.id}', '${tx.desc}', ${amt})" class="opacity-0 group-hover:opacity-100 text-slate-700 hover:text-red-500 transition-all active:scale-90"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                            </div>
+                        </div>`;
+                });
+
+                list.innerHTML = html;
+                document.getElementById('total-income').innerText = `RM ${income.toLocaleString('ms-MY', {minimumFractionDigits:2})}`;
+                document.getElementById('total-expenses').innerText = `RM ${expense.toLocaleString('ms-MY', {minimumFractionDigits:2})}`;
+                document.getElementById('net-profit').innerText = `RM ${(income-expense).toLocaleString('ms-MY', {minimumFractionDigits:2})}`;
+                
+                riskLogs.innerHTML = riskAlerts.length > 0 
+                    ? riskAlerts.slice(0, 3).map(a => `<p class="text-amber-500"><i class="fas fa-bolt text-[8px]"></i> ${a}</p>`).join('')
+                    : '<p class="text-emerald-500/50"><i class="fas fa-shield-check"></i> Integrity Clean</p>';
+
+                initChart(chartLabels, chartData);
+                
+                // Broadcast to other frames
+                if(window.parent) window.parent.postMessage({ type: 'NET_PROFIT_UPDATE', value: (income-expense) }, '*');
+            });
+        }
+
+        async function addTransaction() {
+            const desc = document.getElementById('desc').value;
+            const amount = document.getElementById('amount').value;
+            const category = document.getElementById('category').value;
+            const type = document.getElementById('type').value;
+            const user = getSysUser();
+            
+            if(!desc || !amount) return alert("Sila masukkan keterangan dan jumlah!");
+            if(parseFloat(amount) < 0) {
+                await reportToGuardian("NEGATIVE_ATTEMPT", `Percubaan input nilai negatif: RM${amount}`);
+                return alert("Ralat: Nilai negatif tidak dibenarkan!");
+            }
+
+            const btn = document.getElementById('saveBtn');
+            btn.disabled = true; btn.innerText = "AUTHENTICATING...";
+
+            try {
+                await window.fs.addDoc(window.fs.collection(window.db, "accounting"), {
+                    desc: desc.toUpperCase(),
+                    amount: parseFloat(amount),
+                    category: category,
+                    type: type,
+                    verifiedBy: user.name,
+                    createdAt: window.fs.serverTimestamp()
+                });
+                document.getElementById('desc').value = '';
+                document.getElementById('amount').value = '';
+            } catch (e) { alert("Ralat Rangkaian!"); } 
+            finally { btn.disabled = false; btn.innerText = "Commit Entry"; }
+        }
+
+        async function secureDelete(id, desc, amt) {
+            const user = getSysUser();
+            const alasan = prompt("FORENSIC AUDIT: Nyatakan sebab pemadaman rekod ini:");
+            if(alasan) {
+                await reportToGuardian("DELETE_RECORD", `Rekod [${desc}] RM${amt} dipadam oleh ${user.name}. Alasan: ${alasan}`);
+                await window.fs.deleteDoc(window.fs.doc(window.db, "accounting", id));
+            } else {
+                await reportToGuardian("SUSPICIOUS_CANCEL", `Staf cuba padam RM${amt} tetapi batalkan niat bila diminta alasan.`, "AMARAN");
+                alert("Pemadaman dibatalkan & direkodkan sebagai aktiviti mencurigakan.");
+            }
+        }
+    </script>
+</body>
+</html>
