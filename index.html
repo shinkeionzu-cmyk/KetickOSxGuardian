@@ -172,18 +172,29 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Dedahkan ke window
+        // Dedahkan ke window untuk akses global
         window.db = db;
+        window.fs = { collection, query, where, getDocs, onSnapshot, Timestamp };
         
         let userRole = "staff";
         let currentUserName = "User";
         let idleTimer;
 
+        // --- FUNGSI VERIFY ACCESS YANG TELAH DIKEMASKINI ---
         window.verifyAccess = async function() {
+            console.log("Memulakan pengesahan...");
             let inputPin = ""; 
             document.querySelectorAll('.pin-input').forEach(i => inputPin += i.value);
             
-            if (!window.db) return alert("Sistem sedang memuat... Cuba sebentar lagi.");
+            if (inputPin.length < 4) {
+                alert("Sila masukkan 4 digit PIN.");
+                return;
+            }
+
+            if (!window.db) {
+                alert("Firebase belum sedia. Sila tunggu 5 saat dan cuba lagi.");
+                return;
+            }
 
             try {
                 const q = query(collection(db, "system_users"), where("pin", "==", inputPin));
@@ -198,19 +209,28 @@
                     document.getElementById('userAvatar').src = userData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserName)}&background=3b82f6&color=fff&bold=true`;
                     document.getElementById('userNameDisplay').innerText = currentUserName;
                     document.getElementById('userRoleBadge').innerText = userRole.toUpperCase();
-                    document.getElementById('security-overlay').style.opacity = '0';
-                    setTimeout(() => document.getElementById('security-overlay').style.display = 'none', 500);
                     
-                    if (userRole === 'owner' || userRole === 'admin') document.getElementById('ai-strategist-card').classList.remove('hidden');
+                    // Sembunyikan Overlay Keselamatan
+                    document.getElementById('security-overlay').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('security-overlay').style.display = 'none';
+                    }, 500);
+                    
+                    if (userRole === 'owner' || userRole === 'admin') {
+                        document.getElementById('ai-strategist-card').classList.remove('hidden');
+                    }
                     
                     applyPermissions(); 
                     startSync();
                 } else {
-                    alert("PIN TIDAK SAH!"); 
+                    alert("PIN Salah! Sila cuba lagi.");
                     document.querySelectorAll('.pin-input').forEach(i => i.value = "");
                     document.querySelectorAll('.pin-input')[0].focus();
                 }
-            } catch (err) { alert("Ralat Akses: " + err.message); }
+            } catch (err) {
+                console.error("Ralat Firebase:", err);
+                alert("Ralat Sistem: " + err.message);
+            }
         }
 
         window.loadModule = function(name) {
