@@ -167,35 +167,27 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, query, where, getDocs, onSnapshot, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        
-        // Import config yang akan dicipta oleh GitHub Action
         import firebaseConfig from './firebase-config.js';
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Dedahkan fungsi ke global window supaya boleh digunakan oleh script non-module
+        // Dedahkan ke window
         window.db = db;
-        window.fs = { collection, query, where, getDocs, onSnapshot, Timestamp };
         
-        console.log("KETICK OS: Neural Link Established");
-    </script>
-
-    <script>
         let userRole = "staff";
         let currentUserName = "User";
         let idleTimer;
 
-        async function verifyAccess() {
+        window.verifyAccess = async function() {
             let inputPin = ""; 
             document.querySelectorAll('.pin-input').forEach(i => inputPin += i.value);
             
             if (!window.db) return alert("Sistem sedang memuat... Cuba sebentar lagi.");
 
             try {
-                const q = window.fs.query(window.fs.collection(window.db, "system_users"), window.fs.where("pin", "==", inputPin));
-                const userQuery = await window.fs.getDocs(q);
+                const q = query(collection(db, "system_users"), where("pin", "==", inputPin));
+                const userQuery = await getDocs(q);
                 
                 if (!userQuery.empty) {
                     const userData = userQuery.docs[0].data();
@@ -221,22 +213,7 @@
             } catch (err) { alert("Ralat Akses: " + err.message); }
         }
 
-        function applyPermissions() {
-            const allBtns = document.querySelectorAll('[onclick^="loadModule"]');
-            allBtns.forEach(btn => {
-                const match = btn.getAttribute('onclick').match(/'([^']+)'/);
-                if (match) {
-                    const moduleName = match[1];
-                    if (moduleName === 'dashboard') return;
-                    const isAllowed = window.allowedModules.includes(moduleName);
-                    btn.style.opacity = isAllowed ? '1' : '0.2';
-                    btn.style.pointerEvents = isAllowed ? 'auto' : 'none';
-                    if (!isAllowed && btn.closest('#more-menu')) btn.style.display = 'none';
-                }
-            });
-        }
-
-        function loadModule(name) {
+        window.loadModule = function(name) {
             const body = document.getElementById('master-body');
             const frame = document.getElementById('app-frame');
             const dash = document.getElementById('dashboard-view');
@@ -256,13 +233,27 @@
             }
         }
 
+        function applyPermissions() {
+            const allBtns = document.querySelectorAll('[onclick^="loadModule"]');
+            allBtns.forEach(btn => {
+                const match = btn.getAttribute('onclick').match(/'([^']+)'/);
+                if (match) {
+                    const moduleName = match[1];
+                    if (moduleName === 'dashboard') return;
+                    const isAllowed = (window.allowedModules || []).includes(moduleName);
+                    btn.style.opacity = isAllowed ? '1' : '0.2';
+                    btn.style.pointerEvents = isAllowed ? 'auto' : 'none';
+                    if (!isAllowed && btn.closest('#more-menu')) btn.style.display = 'none';
+                }
+            });
+        }
+
         function startSync() {
             resetIdleTimer();
             const today = new Date(); today.setHours(0,0,0,0);
             
-            // Sync Sales Today
-            window.fs.onSnapshot(
-                window.fs.query(window.fs.collection(window.db, "sales"), window.fs.where("timestamp", ">=", window.fs.Timestamp.fromDate(today))),
+            onSnapshot(
+                query(collection(db, "sales"), where("timestamp", ">=", Timestamp.fromDate(today))),
                 (snap) => {
                     let total = 0; 
                     snap.forEach(doc => total += (parseFloat(doc.data().totalPrice) || 0));
@@ -270,8 +261,7 @@
                 }
             );
 
-            // Sync Inventory
-            window.fs.onSnapshot(window.fs.collection(window.db, "inventory"), (snap) => {
+            onSnapshot(collection(db, "inventory"), (snap) => {
                 let stockCount = 0;
                 snap.forEach(d => stockCount += (parseInt(d.data().stock) || 0));
                 document.getElementById('dash-total-stock').innerText = `${stockCount} SKU`;
@@ -281,17 +271,16 @@
         function resetIdleTimer() { 
             clearTimeout(idleTimer); 
             if (document.getElementById('security-overlay').style.display === 'none') {
-                idleTimer = setTimeout(() => location.reload(), 300000); // 5 Minit Idle
+                idleTimer = setTimeout(() => location.reload(), 300000); 
             }
         }
 
-        function toggleMoreMenu() { document.getElementById('more-menu').classList.toggle('hidden'); }
+        window.toggleMoreMenu = function() { document.getElementById('more-menu').classList.toggle('hidden'); }
         
-        // PIN Input Flow Logic
         document.querySelectorAll('.pin-input').forEach((input, index) => {
             input.addEventListener('input', () => { 
                 if (input.value && index < 3) document.querySelectorAll('.pin-input')[index+1].focus(); 
-                if (index === 3 && input.value) verifyAccess(); 
+                if (index === 3 && input.value) window.verifyAccess(); 
             });
             input.addEventListener('keydown', (e) => { 
                 if (e.key === "Backspace" && !input.value && index > 0) document.querySelectorAll('.pin-input')[index-1].focus(); 
@@ -299,6 +288,8 @@
         });
 
         ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => document.addEventListener(evt, resetIdleTimer, true));
+        
+        console.log("KETICK OS: Global Systems Online");
     </script>
 </body>
 </html>
