@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ms" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KETICK | CRM Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; min-height: 100vh; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass-card { background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%); border: 1px solid rgba(255,255,255,0.1); }
+        
+        .modal { opacity: 0; pointer-events: none; transition: all 0.3s ease; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { opacity: 1; pointer-events: auto; }
+        .modal-content { transform: scale(0.9); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .modal.active .modal-content { transform: scale(1); }
+
+        .filter-btn.active { background: #3b82f6; opacity: 1; box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .pulse-blue { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); animation: pulse 2s infinite; }
+        @keyframes pulse { 70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); } 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); } }
+    </style>
+</head>
+<body class="p-4 pb-28 no-scrollbar">
+
+    <div class="flex justify-between items-center mb-8 px-2">
+        <div>
+            <h1 class="text-2xl font-black uppercase tracking-tighter italic">CRM <span class="text-blue-500">INTEL</span></h1>
+            <p id="stats-info" class="text-[9px] font-bold text-slate-500 uppercase tracking-[0.3em]">Menganalisis Kenalan...</p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="openAddModal()" class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/30 active:scale-90 transition">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="glass-card p-4 rounded-[1.5rem]">
+            <p class="text-[8px] font-black text-blue-400 uppercase mb-1">Pelanggan Aktif</p>
+            <h3 id="count-pelanggan" class="text-xl font-black">0</h3>
+        </div>
+        <div class="glass-card p-4 rounded-[1.5rem]">
+            <p class="text-[8px] font-black text-purple-400 uppercase mb-1">Pembekal Sah</p>
+            <h3 id="count-pembekal" class="text-xl font-black">0</h3>
+        </div>
+    </div>
+
+    <div class="flex gap-2 mb-6 p-1.5 glass rounded-2xl">
+        <button onclick="filterContacts('SEMUA', event)" class="filter-btn active flex-1 py-3 rounded-xl text-[10px] font-black tracking-widest transition-all">SEMUA</button>
+        <button onclick="filterContacts('Pelanggan', event)" class="filter-btn opacity-40 flex-1 py-3 rounded-xl text-[10px] font-black tracking-widest transition-all uppercase">Pelanggan</button>
+        <button onclick="filterContacts('Pembekal', event)" class="filter-btn opacity-40 flex-1 py-3 rounded-xl text-[10px] font-black tracking-widest transition-all uppercase">Pembekal</button>
+    </div>
+
+    <div class="relative mb-8 group">
+        <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 text-xs transition-colors group-focus-within:text-blue-500"></i>
+        <input type="text" id="searchInput" oninput="applyFilter()" placeholder="Cari nama, telefon atau alamat..." class="w-full bg-white/5 border border-white/5 rounded-[1.5rem] py-4 pl-12 pr-6 text-xs outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all font-medium">
+    </div>
+
+    <div id="contact-list" class="space-y-4">
+        <div class="flex flex-col items-center justify-center py-20 opacity-20">
+            <i class="fas fa-circle-notch fa-spin text-3xl mb-4"></i>
+            <p class="text-[10px] font-black uppercase tracking-[0.2em]">Menyalin Data Pangkalan...</p>
+        </div>
+    </div>
+
+    <div id="contactModal" class="modal">
+        <div class="modal-content glass w-full max-w-md p-8 rounded-[2.5rem] relative border border-white/10 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="modalTitle" class="text-xl font-black tracking-tighter text-white uppercase italic">Data Entry</h2>
+                <div class="w-2 h-2 rounded-full bg-blue-500 pulse-blue"></div>
+            </div>
+            <input type="hidden" id="editId">
+            <div class="space-y-5">
+                <div>
+                    <label class="text-[9px] font-black text-slate-500 uppercase ml-2 tracking-widest">Nama Lengkap</label>
+                    <input type="text" id="cName" class="w-full p-4 rounded-2xl bg-white/5 border border-white/5 outline-none mt-1 focus:border-blue-500 text-sm font-bold uppercase italic tracking-tight">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[9px] font-black text-slate-500 uppercase ml-2 tracking-widest">No. Telefon</label>
+                        <input type="tel" id="cPhone" placeholder="601..." class="w-full p-4 rounded-2xl bg-white/5 border border-white/5 outline-none mt-1 focus:border-blue-500 text-sm font-bold">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black text-slate-500 uppercase ml-2 tracking-widest">Kategori</label>
+                        <select id="cType" class="w-full p-4 rounded-2xl bg-[#0d1117] border border-white/5 outline-none mt-1 text-white text-xs font-bold uppercase">
+                            <option value="Pelanggan">Pelanggan</option>
+                            <option value="Pembekal">Pembekal</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[9px] font-black text-slate-500 uppercase ml-2 tracking-widest">Alamat / HQ</label>
+                    <textarea id="cAddress" rows="3" class="w-full p-4 rounded-2xl bg-white/5 border border-white/5 outline-none mt-1 focus:border-blue-500 text-sm"></textarea>
+                </div>
+                <div class="flex gap-4 pt-6">
+                    <button onclick="toggleModal(false)" class="flex-1 py-4 rounded-2xl bg-white/5 font-black text-[10px] uppercase tracking-widest">Batal</button>
+                    <button onclick="handleSave()" class="flex-1 py-4 rounded-2xl bg-blue-600 font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-600/40">Sahkan Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="quickTextModal" class="modal">
+        <div class="modal-content glass w-full max-w-sm p-8 rounded-[2.5rem] relative border border-white/10 shadow-2xl text-center">
+            <h2 class="text-lg font-black tracking-tighter text-white uppercase mb-6 italic">Pilih Template <span class="text-blue-500">Quick Text</span></h2>
+            <div id="template-options" class="space-y-3 text-left"></div>
+            <button onclick="toggleQuickModal(false)" class="w-full mt-6 py-4 rounded-2xl bg-white/5 font-black text-[10px] uppercase tracking-widest">Batal</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import firebaseConfig from '../firebase-config.js';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.fs = { collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, doc, serverTimestamp };
+
+        initCRM();
+    </script>
+
+    <script>
+        let allContacts = [];
+        let currentFilter = 'SEMUA';
+
+        const msgTemplates = [
+            { title: "📦 UPDATE ORDER", text: "Salam [NAMA], status order anda sedang diproses. Terima kasih kerana berurusan dengan KETICK!" },
+            { title: "🛠️ FOLLOW-UP SERVICE", text: "Salam [NAMA], macam mana dengan servis hari tu? Ada apa-apa masalah atau feedback untuk kami?" },
+            { title: "✅ SIAP & PICKUP", text: "Salam [NAMA], item anda dah siap dan sedia untuk diambil/dipos. Terima kasih!" },
+            { title: "💰 REMINDER PAYMENT", text: "Salam [NAMA], sekadar peringatan mesra untuk bayaran baki akaun anda. Terima kasih." }
+        ];
+
+        function initCRM() {
+            if(!window.db) return setTimeout(initCRM, 500);
+            
+            const q = window.fs.query(window.fs.collection(window.db, "contacts"), window.fs.orderBy("name", "asc"));
+            window.fs.onSnapshot(q, (snapshot) => {
+                allContacts = [];
+                let pCount = 0; let bCount = 0;
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    allContacts.push({ id: docSnap.id, ...data });
+                    if(data.type === 'Pelanggan') pCount++; else bCount++;
+                });
+                document.getElementById('count-pelanggan').innerText = pCount;
+                document.getElementById('count-pembekal').innerText = bCount;
+                document.getElementById('stats-info').innerText = `Active Database: ${allContacts.length} Kenalan`;
+                applyFilter();
+            });
+        }
+
+        const formatPhoneNumber = (phone) => {
+            let cleaned = phone.replace(/\D/g, '');
+            if (cleaned.startsWith('0')) return '6' + cleaned;
+            if (cleaned.startsWith('1')) return '60' + cleaned;
+            return cleaned;
+        };
+
+        function renderContacts(data) {
+            const list = document.getElementById('contact-list');
+            if (data.length === 0) {
+                list.innerHTML = `<div class="text-center py-20 opacity-30 text-[10px] font-black uppercase tracking-widest italic">Tiada Data Ditemui</div>`;
+                return;
+            }
+            list.innerHTML = data.map(c => `
+                <div class="glass p-6 rounded-[2.5rem] border border-white/5 relative overflow-hidden group hover:border-blue-500/30 transition-all duration-500 text-left">
+                    <div class="flex justify-between items-start relative z-10">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 glass rounded-2xl flex items-center justify-center font-black text-blue-500 text-sm uppercase">${c.name.charAt(0)}</div>
+                            <div>
+                                <h4 class="text-[13px] font-black text-white leading-tight uppercase italic tracking-tighter">${c.name}</h4>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="status-dot ${c.type === 'Pelanggan' ? 'bg-blue-500' : 'bg-purple-500'}"></span>
+                                    <p class="text-[8px] text-slate-500 font-black uppercase tracking-widest">${c.type}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="editContact('${c.id}')" class="w-9 h-9 rounded-xl glass flex items-center justify-center text-slate-400 hover:text-blue-500"><i class="fas fa-pen-nib text-[10px]"></i></button>
+                            <button onclick="deleteContact('${c.id}')" class="w-9 h-9 rounded-xl glass flex items-center justify-center text-slate-400 hover:text-red-500"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                        </div>
+                    </div>
+                    <div class="mt-5 mb-5 px-1"><p class="text-[10px] text-slate-400 font-medium flex items-center gap-2"><i class="fas fa-map-marker-alt text-blue-500 w-3 text-center"></i><span class="truncate">${c.address || 'Tiada alamat'}</span></p></div>
+                    <div class="flex gap-2 relative z-10">
+                        <a href="tel:${c.phone}" class="flex-1 py-3.5 glass rounded-2xl flex items-center justify-center text-white text-[9px] font-black gap-2 uppercase border border-white/5"><i class="fas fa-phone-alt text-blue-500"></i> Call</a>
+                        <button onclick="openQuickText('${c.id}')" class="flex-[1.5] py-3.5 bg-emerald-600/20 rounded-2xl flex items-center justify-center text-white text-[9px] font-black gap-2 uppercase border border-emerald-500/20"><i class="fab fa-whatsapp text-emerald-500 text-xs"></i> Quick Text</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function applyFilter() {
+            const queryVal = document.getElementById('searchInput').value.toLowerCase();
+            let filtered = allContacts;
+            if (currentFilter !== 'SEMUA') filtered = filtered.filter(c => c.type === currentFilter);
+            if (queryVal) {
+                filtered = filtered.filter(c => 
+                    c.name.toLowerCase().includes(queryVal) || 
+                    c.phone.includes(queryVal) ||
+                    (c.address && c.address.toLowerCase().includes(queryVal))
+                );
+            }
+            renderContacts(filtered);
+        }
+
+        function filterContacts(type, e) {
+            currentFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(btn => { btn.classList.remove('active'); btn.classList.add('opacity-40'); });
+            e.currentTarget.classList.add('active'); e.currentTarget.classList.remove('opacity-40');
+            applyFilter();
+        }
+
+        async function handleSave() {
+            const id = document.getElementById('editId').value;
+            const data = {
+                name: document.getElementById('cName').value.trim().toUpperCase(),
+                phone: document.getElementById('cPhone').value.trim(),
+                type: document.getElementById('cType').value,
+                address: document.getElementById('cAddress').value.trim(),
+                updatedAt: window.fs.serverTimestamp()
+            };
+            
+            if (!data.name || !data.phone) return alert("Wajib isi Nama & Telefon!");
+
+            try {
+                if (id) {
+                    await window.fs.updateDoc(window.fs.doc(window.db, "contacts", id), data);
+                } else {
+                    data.createdAt = window.fs.serverTimestamp();
+                    await window.fs.addDoc(window.fs.collection(window.db, "contacts"), data);
+                }
+                toggleModal(false);
+            } catch (e) { alert("Error: " + e.message); }
+        }
+
+        function editContact(id) {
+            const c = allContacts.find(item => item.id === id);
+            if (!c) return;
+            document.getElementById('modalTitle').innerText = "Update Intel";
+            document.getElementById('editId').value = c.id;
+            document.getElementById('cName').value = c.name;
+            document.getElementById('cPhone').value = c.phone;
+            document.getElementById('cType').value = c.type;
+            document.getElementById('cAddress').value = c.address || '';
+            toggleModal(true);
+        }
+
+        async function deleteContact(id) {
+            if (confirm("Padam kenalan ini?")) {
+                await window.fs.deleteDoc(window.fs.doc(window.db, "contacts", id));
+            }
+        }
+
+        function openQuickText(id) {
+            const c = allContacts.find(item => item.id === id);
+            const container = document.getElementById('template-options');
+            container.innerHTML = msgTemplates.map(t => {
+                const readyMsg = t.text.replace('[NAMA]', c.name);
+                const waUrl = `https://wa.me/${formatPhoneNumber(c.phone)}?text=${encodeURIComponent(readyMsg)}`;
+                return `<a href="${waUrl}" target="_blank" onclick="toggleQuickModal(false)" class="block p-4 glass rounded-2xl border border-white/5 hover:border-blue-500/50">
+                    <p class="text-[10px] font-black text-blue-400 mb-1 uppercase tracking-tighter">${t.title}</p>
+                    <p class="text-[11px] text-slate-300 leading-tight">${readyMsg.substring(0, 50)}...</p>
+                </a>`;
+            }).join('');
+            toggleQuickModal(true);
+        }
+
+        function toggleModal(show) { document.getElementById('contactModal').classList.toggle('active', show); }
+        function toggleQuickModal(show) { document.getElementById('quickTextModal').classList.toggle('active', show); }
+        function openAddModal() {
+            document.getElementById('modalTitle').innerText = "New Contact Entry";
+            document.getElementById('editId').value = "";
+            document.getElementById('cName').value = "";
+            document.getElementById('cPhone').value = "";
+            document.getElementById('cAddress').value = "";
+            toggleModal(true);
+        }
+    </script>
+</body>
+</html>
