@@ -11,7 +11,6 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
         .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
         
-        /* Premium Loader */
         .loader { width: 50px; height: 50px; border: 3px solid rgba(59, 130, 246, 0.1); border-radius: 50%; border-top-color: #3b82f6; animation: spin 1s ease-in-out infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         
@@ -61,36 +60,27 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        window.db = db;
-        window.fs = { collection, addDoc, getDocs, limit, query, serverTimestamp };
-    </script>
+        const initialStock = [
+            { name: "KETICK PRO SNEAKERS BLACK", category: "KASUT", stock: 50, price: 189.90, sku: "KTC-SNK-01" },
+            { name: "URBAN STREETWEAR V2 WHITE", category: "KASUT", stock: 25, price: 245.00, sku: "KTC-SNK-02" },
+            { name: "PREMIUM SHOE CLEANER KIT", category: "AKSESORI", stock: 100, price: 35.00, sku: "KTC-ACC-01" },
+            { name: "KETICK DIGITAL CREDIT (100)", category: "DIGITAL", stock: 999, price: 10.00, sku: "DIG-001" },
+            { name: "AUTHORITY KEY V1", category: "SISTEM", stock: 10, price: 500.00, sku: "SYS-KEY-01" }
+        ];
 
-    <script>
-        async function runSetup() {
-            if(!window.db) return alert("Firebase belum bersedia. Cuba lagi dalam sesaat.");
-
+        window.runSetup = async function() {
             const status = document.getElementById('status-msg');
             const btn = document.getElementById('btn-setup');
             const loader = document.getElementById('loader-container');
             const btnBack = document.getElementById('btn-back');
             
-            status.innerHTML = "<span class='text-blue-400'>⏳ SEDANG MENGHUBUNG KE CLOUD ENGINE...</span>";
+            status.innerHTML = "<span class='text-blue-400 animate-pulse font-black'>⏳ SEDANG MENGHUBUNG KE CLOUD ENGINE...</span>";
             btn.classList.add('hidden');
             loader.classList.remove('hidden');
 
-            // Data Awal untuk Bisnis Azlan (Kasut & Digital)
-            const initialStock = [
-                { name: "KETICK PRO SNEAKERS BLACK", category: "KASUT", stock: 50, price: 189.90, sku: "KTC-SNK-01" },
-                { name: "URBAN STREETWEAR V2 WHITE", category: "KASUT", stock: 25, price: 245.00, sku: "KTC-SNK-02" },
-                { name: "PREMIUM SHOE CLEANER KIT", category: "AKSESORI", stock: 100, price: 35.00, sku: "KTC-ACC-01" },
-                { name: "KETICK DIGITAL CREDIT (100)", category: "DIGITAL", stock: 999, price: 10.00, sku: "DIG-001" },
-                { name: "AUTHORITY KEY V1", category: "SISTEM", stock: 10, price: 500.00, sku: "SYS-KEY-01" }
-            ];
-
             try {
-                // 1. Semak integriti pangkalan data sedia ada
-                const q = window.fs.query(window.fs.collection(window.db, "inventory"), window.fs.limit(1));
-                const snapshot = await window.fs.getDocs(q);
+                const q = query(collection(db, "inventory"), limit(1));
+                const snapshot = await getDocs(q);
                 
                 if (!snapshot.empty) {
                     const confirmOverwrite = confirm("Rekod inventori dikesan dalam Cloud. Teruskan suntikan data tambahan?");
@@ -102,39 +92,37 @@
                     }
                 }
 
-                // 2. Suntikan Data secara Berperingkat
                 let count = 0;
                 for (let item of initialStock) {
-                    item.lastUpdated = window.fs.serverTimestamp();
+                    item.lastUpdated = serverTimestamp();
                     item.createdBy = "SYSTEM_ROOT";
                     
-                    await window.fs.addDoc(window.fs.collection(window.db, "inventory"), item);
+                    await addDoc(collection(db, "inventory"), item);
                     count++;
-                    status.innerHTML = `<span class='text-emerald-400'>📦 MENYUNTIK DATA: ${count}/${initialStock.length}</span><br><span class='text-[8px]'>${item.name}</span>`;
+                    status.innerHTML = `<span class='text-emerald-400 font-bold'>📦 MENYUNTIK DATA: ${count}/${initialStock.length}</span><br><span class='text-[8px]'>${item.name}</span>`;
                 }
 
-                // 3. Post-Setup Success
                 loader.classList.add('hidden');
                 status.innerHTML = "<b class='text-emerald-500 text-lg italic tracking-widest'>SUNTIKAN BERJAYA!</b><br><span class='text-[8px] text-slate-500'>DATABASE KETICK OS KINI AKTIF & BERAUTORITI</span>";
                 btnBack.classList.remove('hidden');
                 
-                // Tambah log Audit
-                await window.fs.addDoc(window.fs.collection(window.db, "audit_logs"), {
+                await addDoc(collection(db, "audit_logs"), {
                     staf: "SYSTEM_ROOT",
                     peranan: "OWNER",
                     aktiviti: "DATABASE_INITIALIZATION",
                     detail: `Suntikan ${count} item inventori awal berjaya.`,
                     tahap: "INFO",
-                    timestamp: window.fs.serverTimestamp()
+                    timestamp: serverTimestamp()
                 });
                 
             } catch (e) {
+                console.error(e);
                 loader.classList.add('hidden');
-                status.innerHTML = `<b class='text-red-500'>RALAT KRITIKAL CORE:</b><br><span class='text-[9px]'>${e.message}</span>`;
+                status.innerHTML = `<b class='text-red-500 uppercase'>Ralat Kritikal Core:</b><br><span class='text-[9px] text-red-400'>${e.message}</span>`;
                 btn.classList.remove('hidden');
                 btn.innerText = "CUBA LAGI";
             }
-        }
+        };
     </script>
 </body>
 </html>
