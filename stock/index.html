@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ms" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Inventory Intelligence | KETICK OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; min-height: 100vh; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass-card { background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%); border: 1px solid rgba(255,255,255,0.1); }
+        
+        .modal { opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: fixed; inset: 0; z-index: 100; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { opacity: 1; pointer-events: auto; }
+        .modal-content { transform: scale(0.95); transition: 0.3s; }
+        .modal.active .modal-content { transform: scale(1); }
+
+        .input-style { background: rgba(255,255,255,0.03) !important; border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 1.5rem; padding: 16px; font-size: 13px; color: white !important; width: 100%; outline: none; transition: 0.3s; font-weight: 600; }
+        .input-style:focus { border-color: #3b82f6 !important; background: rgba(59, 130, 246, 0.05) !important; box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        tr { transition: 0.2s; border-bottom: 1px solid rgba(255,255,255,0.02); }
+        tr:hover { background: rgba(255, 255, 255, 0.02); }
+        
+        .badge-low { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .badge-ok { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+    </style>
+</head>
+<body class="p-4 md:p-10 no-scrollbar pb-32">
+
+    <div class="flex justify-between items-end mb-12">
+        <div>
+            <h1 class="text-3xl font-black uppercase tracking-tighter italic leading-none">Stock <span class="text-blue-500">Intel</span></h1>
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] mt-2">Inventory Ecosystem & Audit Trail</p>
+        </div>
+        <button onclick="openAddModal()" class="w-14 h-14 bg-blue-600 rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-blue-600/30 active:scale-90 transition-all border border-blue-400/20">
+            <i class="fas fa-plus text-lg"></i>
+        </button>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+        <div class="glass-card p-6 rounded-[2.5rem] border-l-4 border-blue-500">
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total SKU</p>
+            <h3 id="totalSku" class="text-3xl font-black italic tracking-tighter">0</h3>
+        </div>
+        <div class="glass-card p-6 rounded-[2.5rem] border-l-4 border-red-500">
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Kritikal (Low)</p>
+            <h3 id="lowStock" class="text-3xl font-black italic tracking-tighter text-red-500">0</h3>
+        </div>
+    </div>
+
+    <div class="relative mb-10 group">
+        <i class="fas fa-search absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 text-xs group-focus-within:text-blue-500 transition-colors"></i>
+        <input type="text" id="searchInput" oninput="searchStock()" placeholder="Cari Nama, SKU, atau Kategori..." 
+        class="w-full bg-white/5 border border-white/5 rounded-[2rem] py-5 pl-14 pr-8 text-[11px] font-black uppercase tracking-[0.2em] outline-none focus:border-blue-500/50 transition-all shadow-inner">
+    </div>
+
+    <div class="glass rounded-[3rem] overflow-hidden border border-white/5 shadow-2xl">
+        <div class="overflow-x-auto no-scrollbar">
+            <table class="w-full text-left border-collapse min-w-[800px]">
+                <thead class="bg-white/[0.03] text-slate-500 uppercase font-black text-[9px] tracking-[0.2em]">
+                    <tr>
+                        <th class="p-8">Produk & SKU</th>
+                        <th class="p-8">Kategori</th>
+                        <th class="p-8 text-right">Harga Jual</th>
+                        <th class="p-8 text-right text-amber-500">Min Price</th>
+                        <th class="p-8 text-center">Baki Stok</th>
+                        <th class="p-8 text-center">Tindakan</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryTable" class="text-[11px] font-bold text-slate-300">
+                    <tr><td colspan="6" class="p-20 text-center opacity-30 italic uppercase tracking-[0.3em]">Mendapatkan Data Awan...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="productModal" class="modal">
+        <div class="glass modal-content w-full max-w-xl rounded-[3.5rem] p-10 relative border border-white/10 shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
+            <div class="flex justify-between items-center mb-10">
+                <h3 id="modalTitle" class="text-xl font-black uppercase tracking-tighter italic">Kemasukan <span class="text-blue-500">Stok</span></h3>
+                <button onclick="toggleModal(false)" class="w-10 h-10 glass rounded-full flex items-center justify-center text-slate-500 hover:text-white transition"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <form id="productForm" class="space-y-6">
+                <input type="hidden" id="editId">
+                
+                <div class="flex flex-col items-center mb-8">
+                    <div id="imagePreview" class="w-32 h-32 rounded-[2.5rem] bg-white/5 border-2 border-dashed border-white/10 flex items-center justify-center mb-4 overflow-hidden shadow-inner group relative">
+                        <i class="fas fa-camera text-slate-700 text-3xl"></i>
+                    </div>
+                    <label class="cursor-pointer bg-white/5 hover:bg-blue-600 text-slate-400 hover:text-white px-6 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-white/10 transition-all active:scale-90">
+                        Pilih Gambar Produk
+                        <input type="file" id="productImage" accept="image/*" class="hidden" onchange="previewFile()">
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="col-span-2">
+                        <label class="text-[9px] font-black uppercase text-slate-600 ml-4 mb-2 block tracking-widest">Nama Produk</label>
+                        <input type="text" id="itemName" class="input-style uppercase" placeholder="CONTOH: PANADOL 500MG" required>
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black uppercase text-slate-600 ml-4 mb-2 block tracking-widest">Kategori</label>
+                        <div class="flex gap-2">
+                            <select id="itemCategory" class="input-style flex-1 uppercase"></select>
+                            <button type="button" onclick="addNewCategory()" class="bg-blue-600/10 text-blue-500 w-14 rounded-2xl border border-blue-500/20 hover:bg-blue-600 hover:text-white transition"><i class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black uppercase text-slate-600 ml-4 mb-2 block tracking-widest">SKU / Kod</label>
+                        <input type="text" id="itemSku" class="input-style uppercase" placeholder="SKU-XXX">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black uppercase text-slate-600 ml-4 mb-2 block tracking-widest">Harga Jual (RM)</label>
+                        <input type="number" step="0.01" id="itemPrice" class="input-style" placeholder="0.00" required>
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black uppercase text-amber-600 ml-4 mb-2 block tracking-widest">Harga Lantai (Min RM)</label>
+                        <input type="number" step="0.01" id="itemMinPrice" class="input-style border-amber-500/20" placeholder="0.00">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="text-[9px] font-black uppercase text-slate-600 ml-4 mb-2 block tracking-widest">Jumlah Stok</label>
+                        <input type="number" id="itemStock" class="input-style text-center text-xl" placeholder="0" required>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-500 py-6 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] mt-10 shadow-2xl shadow-blue-600/40 transition-all active:scale-95 border border-blue-400/30">
+                    Simpan Ke Pangkalan Data
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { 
+            getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, 
+            getDoc, orderBy, query, onSnapshot, serverTimestamp, FieldValue 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        
+        // Import config automatik
+        import firebaseConfig from '../firebase-config.js';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Jambatan ke skrip biasa
+        window.db = db;
+        window.fs = { 
+            collection, addDoc, doc, updateDoc, deleteDoc, getDoc, 
+            orderBy, query, onSnapshot, serverTimestamp, FieldValue 
+        };
+        
+        console.log("STOCK MODULE: Neural Link Established");
+        
+        // Mulakan sync data bila sedia
+        startInventorySync();
+        loadCategories();
+    </script>
+
+    <script>
+        let base64Image = "";
+        let categories = ["UBAT-UBATAN", "ALAT PERUBATAN", "SUPLEMEN", "SERVIS"];
+
+        async function syncToAccounting(itemName, totalCost) {
+            if(!window.db) return;
+            try {
+                await window.fs.addDoc(window.fs.collection(window.db, "accounting"), {
+                    desc: `RESTOCK: ${itemName.toUpperCase()}`,
+                    amount: parseFloat(totalCost),
+                    type: 'expense',
+                    verifiedBy: 'STOCK_MODULE',
+                    timestamp: window.fs.serverTimestamp()
+                });
+            } catch (e) { console.error("Accounting Sync Error:", e); }
+        }
+
+        function loadCategories() {
+            if(!window.db) return;
+            window.fs.onSnapshot(window.fs.collection(window.db, "inventory"), (snap) => {
+                const set = new Set(["UBAT-UBATAN", "ALAT PERUBATAN", "SUPLEMEN", "SERVIS"]);
+                snap.forEach(doc => { if(doc.data().category) set.add(doc.data().category.toUpperCase()) });
+                categories = Array.from(set).sort();
+                renderDropdown();
+            });
+        }
+
+        function toggleModal(show) {
+            document.getElementById('productModal').classList.toggle('active', show);
+        }
+
+        function openAddModal() {
+            document.getElementById('modalTitle').innerHTML = 'Kemasukan <span class="text-blue-500">Stok Baru</span>';
+            document.getElementById('productForm').reset();
+            document.getElementById('editId').value = "";
+            document.getElementById('imagePreview').innerHTML = `<i class="fas fa-camera text-slate-700 text-3xl"></i>`;
+            base64Image = "";
+            toggleModal(true);
+        }
+
+        function previewFile() {
+            const file = document.getElementById('productImage').files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 400;
+                    const scale = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scale;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    base64Image = canvas.toDataURL('image/jpeg', 0.8);
+                    document.getElementById('imagePreview').innerHTML = `<img src="${base64Image}" class="w-full h-full object-cover">`;
+                }
+            }
+            if(file) reader.readAsDataURL(file);
+        }
+
+        function searchStock() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#inventoryTable tr');
+            rows.forEach(row => {
+                const match = row.innerText.toLowerCase().includes(query);
+                row.style.display = match ? 'table-row' : 'none';
+            });
+        }
+
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const editId = document.getElementById('editId').value;
+            const btn = document.getElementById('submitBtn');
+            const itemName = document.getElementById('itemName').value.toUpperCase();
+            const itemStock = parseInt(document.getElementById('itemStock').value);
+            
+            let isExpense = false;
+            let unitCost = 0;
+            if(!editId) {
+                isExpense = confirm(`Adakah [${itemName}] ini stok baru yang dibeli?\n(Akan direkod sebagai Expenses dalam Accounting)`);
+                if(isExpense) unitCost = prompt(`KOS MODAL seunit untuk ${itemName}:`, "0.00");
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Mengemaskini Database...';
+
+            const data = {
+                name: itemName,
+                category: document.getElementById('itemCategory').value,
+                price: parseFloat(document.getElementById('itemPrice').value),
+                min_price: parseFloat(document.getElementById('itemMinPrice').value) || 0,
+                stock: itemStock,
+                sku: document.getElementById('itemSku').value.toUpperCase() || 'N/A',
+                image: base64Image || 'https://via.placeholder.com/150?text=NO+IMAGE',
+                updatedAt: window.fs.serverTimestamp()
+            };
+
+            try {
+                if(editId) {
+                    await window.fs.updateDoc(window.fs.doc(window.db, "inventory", editId), data);
+                } else {
+                    await window.fs.addDoc(window.fs.collection(window.db, "inventory"), {
+                        ...data, 
+                        createdAt: window.fs.serverTimestamp()
+                    });
+                }
+                
+                if(isExpense && unitCost > 0) {
+                    await syncToAccounting(itemName, unitCost * itemStock);
+                }
+
+                toggleModal(false);
+            } catch(err) { alert(err.message); }
+            finally { btn.disabled = false; btn.innerHTML = 'Simpan Ke Pangkalan Data'; }
+        });
+
+        function startInventorySync() {
+            window.fs.onSnapshot(
+                window.fs.query(window.fs.collection(window.db, "inventory"), window.fs.orderBy("name", "asc")), 
+                (snap) => {
+                    const table = document.getElementById('inventoryTable');
+                    table.innerHTML = '';
+                    let lowCount = 0;
+                    
+                    snap.forEach(docSnap => {
+                        const p = docSnap.data();
+                        const id = docSnap.id;
+                        const isLow = p.stock <= 5;
+                        if(isLow) lowCount++;
+                        
+                        table.innerHTML += `
+                        <tr>
+                            <td class="p-8">
+                                <div class="flex items-center gap-5">
+                                    <div class="w-14 h-14 rounded-2xl overflow-hidden glass border border-white/10 shadow-lg group">
+                                        <img src="${p.image}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                                    </div>
+                                    <div>
+                                        <p class="font-black text-white italic tracking-tighter text-sm uppercase">${p.name}</p>
+                                        <p class="text-[8px] text-slate-600 font-black tracking-widest mt-1 uppercase">SKU: ${p.sku}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-8"><span class="bg-blue-600/10 text-blue-500 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-blue-500/10">${p.category}</span></td>
+                            <td class="p-8 text-right text-xs font-black text-white italic">RM ${p.price.toFixed(2)}</td>
+                            <td class="p-8 text-right text-xs font-black text-amber-500 italic">RM ${(p.min_price || 0).toFixed(2)}</td>
+                            <td class="p-8 text-center">
+                                <div class="inline-block px-5 py-2 rounded-[1.2rem] ${isLow ? 'badge-low' : 'badge-ok'}">
+                                    <p class="text-xs font-black italic">${p.stock}</p>
+                                </div>
+                            </td>
+                            <td class="p-8">
+                                <div class="flex gap-5 justify-center">
+                                    <button onclick="editItem('${id}')" class="text-blue-500 hover:text-white transition"><i class="fas fa-edit"></i></button>
+                                    <button onclick="deleteItem('${id}')" class="text-slate-800 hover:text-red-500 transition"><i class="fas fa-trash-alt"></i></button>
+                                </div>
+                            </td>
+                        </tr>`;
+                    });
+                    document.getElementById('totalSku').innerText = snap.size;
+                    document.getElementById('lowStock').innerText = lowCount;
+                }
+            );
+        }
+
+        window.editItem = async (id) => {
+            const docSnap = await window.fs.getDoc(window.fs.doc(window.db, "inventory", id));
+            if(!docSnap.exists()) return;
+            const p = docSnap.data();
+            document.getElementById('modalTitle').innerHTML = 'Edit <span class="text-blue-500">Item Intel</span>';
+            document.getElementById('editId').value = id;
+            document.getElementById('itemName').value = p.name;
+            document.getElementById('itemPrice').value = p.price;
+            document.getElementById('itemMinPrice').value = p.min_price;
+            document.getElementById('itemStock').value = p.stock;
+            document.getElementById('itemSku').value = p.sku === 'N/A' ? '' : p.sku;
+            document.getElementById('itemCategory').value = p.category;
+            base64Image = p.image;
+            document.getElementById('imagePreview').innerHTML = `<img src="${p.image}" class="w-full h-full object-cover">`;
+            toggleModal(true);
+        }
+
+        window.deleteItem = async (id) => {
+            if(confirm("Padam item ini daripada database secara kekal?")) {
+                await window.fs.deleteDoc(window.fs.doc(window.db, "inventory", id));
+            }
+        }
+
+        window.addNewCategory = () => {
+            const name = prompt("Masukkan Nama Kategori Baru:");
+            if(name) {
+                const upper = name.toUpperCase();
+                if(!categories.includes(upper)) {
+                    categories.push(upper);
+                    renderDropdown();
+                    document.getElementById('itemCategory').value = upper;
+                }
+            }
+        }
+
+        function renderDropdown() {
+            const select = document.getElementById('itemCategory');
+            if(select) {
+                select.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+            }
+        }
+    </script>
+</body>
+</html>
