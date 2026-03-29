@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ms" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KETICK | Advanced Audit & Guardian</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; min-height: 100vh; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .risk-high { border-left: 4px solid #ef4444; background: linear-gradient(90deg, rgba(239, 68, 68, 0.1) 0%, transparent 100%); }
+        .risk-medium { border-left: 4px solid #f59e0b; background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%); }
+        .risk-low { border-left: 4px solid #3b82f6; background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%); }
+        .tab-active { border-bottom: 2px solid #ef4444; color: #ef4444; opacity: 1 !important; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        #alert-popup { transform: translateY(-120%); transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+        #alert-popup.show { transform: translateY(0); }
+    </style>
+</head>
+<body class="p-4 pb-24 no-scrollbar">
+
+    <div id="alert-popup" class="fixed top-4 left-4 right-4 z-[100] glass border-red-500/50 p-4 rounded-[1.5rem] shadow-2xl hidden flex items-center gap-4">
+        <div class="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center animate-pulse shadow-lg shadow-red-500/20">
+            <i class="fas fa-biohazard text-white text-lg"></i>
+        </div>
+        <div class="flex-grow">
+            <h5 class="text-[9px] font-black text-red-500 uppercase tracking-widest">Kritikal Dikesan</h5>
+            <p id="alert-msg" class="text-[11px] font-bold text-white truncate italic">Menganalisis anomali...</p>
+        </div>
+        <button onclick="hideAlert()" class="text-slate-500 p-2"><i class="fas fa-times"></i></button>
+    </div>
+
+    <div class="flex justify-between items-start mb-8 p-2">
+        <div>
+            <h1 class="text-3xl font-black tracking-tighter text-red-500 uppercase italic">GUARDIAN <span class="text-white">EYE</span></h1>
+            <p id="hq-display" class="text-[9px] font-bold text-slate-500 uppercase tracking-[0.3em]">HQ: MEMUATKAN DATA...</p>
+        </div>
+        <div class="text-right">
+            <span class="px-3 py-1 bg-red-500/10 text-red-500 border border-red-500/20 rounded-full text-[8px] font-black uppercase">Live Audit</span>
+            <p id="live-clock" class="text-[10px] font-bold text-slate-600 mt-2 tracking-widest">00:00:00</p>
+        </div>
+    </div>
+
+    <div class="mb-8">
+        <div class="flex justify-between items-center mb-4 px-2">
+            <h2 class="text-[9px] font-black uppercase text-blue-400 tracking-[0.2em] leading-none">Risk Intelligence Ranking</h2>
+            <i class="fas fa-shield-halved text-slate-800 text-lg"></i>
+        </div>
+        <div id="risk-ranking" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="p-8 glass rounded-[2rem] text-center text-slate-700 uppercase text-[9px] font-bold">Menganalisis jejak digital...</div>
+        </div>
+    </div>
+
+    <div class="flex gap-6 mb-6 px-2 border-b border-white/5 overflow-x-auto text-[9px] font-black uppercase tracking-widest no-scrollbar">
+        <button onclick="switchTab('PINDAHAN_WANG', 't1')" id="tab-t1" class="pb-3 tab-active whitespace-nowrap opacity-50 transition-all">Pindahan</button>
+        <button onclick="switchTab('HARGA_RENDAH', 't2')" id="tab-t2" class="pb-3 text-slate-500 whitespace-nowrap opacity-50 transition-all">Pancung Harga</button>
+        <button onclick="switchTab('VOID_ITEM', 't3')" id="tab-t3" class="pb-3 text-slate-500 whitespace-nowrap opacity-50 transition-all">Void Abuse</button>
+        <button onclick="switchTab('LOGIN_SUSPICIOUS', 't4')" id="tab-t4" class="pb-3 text-slate-500 whitespace-nowrap opacity-50 transition-all">Akses Luar</button>
+    </div>
+
+    <div id="log-container" class="space-y-3">
+        <div class="text-center py-20 text-slate-800 text-[9px] font-black uppercase tracking-widest">Memulakan Unit Audit...</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, collection, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import firebaseConfig from '../firebase-config.js';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.fs = { doc, onSnapshot, collection, query, where, orderBy, limit };
+
+        initGuardian();
+    </script>
+
+    <script>
+        let currentType = 'PINDAHAN_WANG';
+        let isFirstLoad = true;
+
+        function initGuardian() {
+            if(!window.db) return setTimeout(initGuardian, 500);
+            
+            // Sync Clock
+            setInterval(() => { document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('ms-MY'); }, 1000);
+
+            // Sync HQ
+            window.fs.onSnapshot(window.fs.doc(window.db, "system_settings", "hq_profile"), d => {
+                if(d.exists()) document.getElementById('hq-display').innerText = `HQ: ${d.data().nama_syarikat || 'KETICK OS'}`;
+            });
+
+            calculateRiskScore();
+            loadLogs();
+            setupLiveAlerts();
+        }
+
+        function setupLiveAlerts() {
+            const q = window.fs.query(window.fs.collection(window.db, "audit_logs"), window.fs.orderBy("timestamp", "desc"), window.fs.limit(1));
+            window.fs.onSnapshot(q, snap => {
+                if(isFirstLoad) { isFirstLoad = false; return; }
+                snap.docChanges().forEach(change => {
+                    if(change.type === "added") {
+                        const data = change.doc.data();
+                        if(data.tahap === "KRITIKAL") triggerAlert(`${data.staf.toUpperCase()}: ${data.detail}`);
+                    }
+                });
+            });
+        }
+
+        function calculateRiskScore() {
+            window.fs.onSnapshot(window.fs.collection(window.db, "audit_logs"), snap => {
+                const staffStats = {};
+                snap.forEach(docSnap => {
+                    const d = docSnap.data();
+                    const name = d.staf || "Unknown";
+                    if(!staffStats[name]) staffStats[name] = { score: 0 };
+                    
+                    if(d.detail.includes("DIPADAM")) staffStats[name].score += 40;
+                    if(d.detail.includes("ANOMALI")) staffStats[name].score += 30;
+                    if(d.tahap === "KRITIKAL") staffStats[name].score += 20;
+                    if(d.tahap === "AMARAN") staffStats[name].score += 10;
+                });
+                renderRiskCards(staffStats);
+            });
+        }
+
+        function renderRiskCards(stats) {
+            const container = document.getElementById('risk-ranking');
+            let html = "";
+            const sorted = Object.entries(stats).sort((a,b) => b[1].score - a[1].score).slice(0, 3);
+            
+            if(sorted.length === 0) {
+                container.innerHTML = `<div class="p-8 glass rounded-[2rem] text-center text-slate-700 uppercase text-[9px] font-black w-full italic">Sistem Bersih • Tiada Risiko</div>`;
+                return;
+            }
+
+            sorted.forEach(([name, data]) => {
+                let color = "text-blue-400";
+                let label = "SAFE";
+                if(data.score >= 50) { color = "text-red-500"; label = "HIGH RISK"; }
+                else if(data.score >= 20) { color = "text-orange-500"; label = "SUSPICIOUS"; }
+                
+                html += `
+                    <div class="p-5 glass rounded-[2rem] border-white/5 relative overflow-hidden">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="text-[10px] font-black uppercase text-white tracking-tighter">${name}</h4>
+                            <span class="text-[7px] font-black px-2 py-0.5 rounded-full bg-white/5 ${color}">${label}</span>
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <p class="text-2xl font-black ${color}">${data.score}</p>
+                            <p class="text-[7px] font-bold text-slate-600 uppercase mb-1 tracking-widest">Risk Pts</p>
+                        </div>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function loadLogs() {
+            const q = window.fs.query(
+                window.fs.collection(window.db, "audit_logs"), 
+                window.fs.where("aktiviti", "==", currentType), 
+                window.fs.orderBy("timestamp", "desc"), 
+                window.fs.limit(15)
+            );
+
+            window.fs.onSnapshot(q, snap => {
+                const container = document.getElementById('log-container');
+                container.innerHTML = "";
+                if(snap.empty) {
+                    container.innerHTML = `<div class="text-center py-20 text-slate-800 text-[10px] font-black uppercase tracking-widest">Tiada Log Pangkalan Data</div>`;
+                    return;
+                }
+                snap.forEach(docSnap => {
+                    const d = docSnap.data();
+                    const date = d.timestamp ? new Date(d.timestamp.seconds * 1000).toLocaleTimeString('ms-MY') : 'Live';
+                    let cardClass = d.tahap === "KRITIKAL" ? "risk-high" : (d.tahap === "AMARAN" ? "risk-medium" : "risk-low");
+                    
+                    container.innerHTML += `
+                        <div class="p-5 glass rounded-[2rem] ${cardClass} relative overflow-hidden group">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <p class="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">${date} • ${d.hq_name || 'SYSTEM'}</p>
+                                    <h4 class="text-[11px] font-black uppercase text-white italic tracking-tighter">${d.aktiviti.replace('_', ' ')}</h4>
+                                </div>
+                                <div class="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-[10px] font-black text-blue-500 uppercase">${d.staf.charAt(0)}</div>
+                            </div>
+                            <div class="bg-black/40 p-3 rounded-xl border border-white/5 mb-3">
+                                <p class="text-[10px] text-slate-400 italic font-medium leading-relaxed">"${d.detail}"</p>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <p class="text-[9px] font-black text-white uppercase">${d.staf} <span class="text-slate-600 ml-1">• ${d.peranan || 'STAFF'}</span></p>
+                                <i class="fas fa-arrow-right text-[8px] text-slate-700"></i>
+                            </div>
+                        </div>`;
+                });
+            });
+        }
+
+        function switchTab(type, id) {
+            currentType = type;
+            document.querySelectorAll('button[id^="tab-"]').forEach(btn => btn.classList.remove('tab-active'));
+            document.getElementById(`tab-${id}`).classList.add('tab-active');
+            loadLogs();
+        }
+
+        function triggerAlert(msg) {
+            const popup = document.getElementById('alert-popup');
+            document.getElementById('alert-msg').innerText = msg;
+            popup.classList.remove('hidden');
+            setTimeout(() => popup.classList.add('show'), 100);
+            
+            // Audio cue
+            const context = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = context.createOscillator();
+            osc.type = 'sine'; osc.frequency.value = 880;
+            osc.connect(context.destination);
+            osc.start(); osc.stop(context.currentTime + 0.1);
+        }
+
+        function hideAlert() {
+            const popup = document.getElementById('alert-popup');
+            popup.classList.remove('show');
+            setTimeout(() => popup.classList.add('hidden'), 500);
+        }
+    </script>
+</body>
+</html>
