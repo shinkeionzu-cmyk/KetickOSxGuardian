@@ -9,14 +9,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # Guna FIREBASE_CONFIG_CONTENT untuk cipta fail config
       - name: Create Firebase Config
-        run: echo "${{ secrets.FIREBASE_CONFIG_CONTENT }}" > firebase-config.js
+        run: |
+          echo "export default {
+            apiKey: '${{ secrets.FIREBASE_API_KEY }}',
+            authDomain: 'ketickxguard.firebaseapp.com',
+            projectId: 'ketickxguard',
+            storageBucket: 'ketickxguard.firebasestorage.app',
+            messagingSenderId: '699619188393',
+            appId: '1:699619188393:web:d2c9ca771cd4c66c4f53b8'
+          };" > firebase-config.js
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          # Guna FIREBASE_SERVICE_ACCOUNT_KEY (ikut gambar secrets kau)
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}'
           channelId: live
           projectId: ketickxguard
