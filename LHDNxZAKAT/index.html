@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ms" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LHDN & ZAKAT | KETICK OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; min-height: 100vh; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .audit-glow { box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="p-4 lg:p-8 pb-24 no-scrollbar">
+
+    <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-emerald-600/20 rounded-2xl flex items-center justify-center border border-emerald-500/30">
+                <i class="fas fa-shield-halved text-emerald-500"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-black uppercase tracking-tighter text-white">LHDN <span class="text-emerald-500">x ZAKAT</span></h1>
+                <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Digital Shoebox Compliance</p>
+            </div>
+        </div>
+        <button onclick="openUpload()" class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20 active:scale-90 transition-all">
+            <i class="fas fa-plus text-xs"></i>
+        </button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 mb-8">
+        <div class="glass p-5 rounded-[2rem] border border-blue-500/10">
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Pelepasan Cukai</p>
+            <h4 id="total-tax-relief" class="text-lg font-black text-white">RM 0.00</h4>
+            <p class="text-[8px] text-blue-500 font-bold mt-1 leading-none italic">Resit Layak Audit</p>
+        </div>
+        <div class="glass p-5 rounded-[2rem] border border-emerald-500/10 text-right">
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Zakat Perniagaan</p>
+            <h4 id="total-zakat" class="text-lg font-black text-white">RM 0.00</h4>
+            <p class="text-[8px] text-emerald-500 font-bold mt-1 leading-none italic">Kiraan 2.5% Estimasi</p>
+        </div>
+    </div>
+
+    <div class="mb-8">
+        <div class="flex justify-between items-center mb-4 px-2">
+            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Arkib Dokumen Digital</h3>
+            <select id="filter-category" onchange="loadVault()" class="bg-transparent text-[10px] font-black uppercase outline-none text-blue-500">
+                <option value="ALL">Semua</option>
+                <option value="EXPENSE">Belanja</option>
+                <option value="ASSET">Aset</option>
+                <option value="DONATION">Derma/Zakat</option>
+            </select>
+        </div>
+        <div id="vault-container" class="space-y-3">
+            <div class="text-center py-20 opacity-20 text-[10px] font-black uppercase tracking-widest">Memuatkan Arkib...</div>
+        </div>
+    </div>
+
+    <div id="upload-modal" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/95 backdrop-blur-md" onclick="closeUpload()"></div>
+        <div class="glass w-full max-w-lg rounded-[2.5rem] p-8 relative z-10 border border-white/10">
+            <h2 class="text-xl font-black uppercase tracking-tighter text-white mb-6">Digitalize <span class="text-blue-500">Document</span></h2>
+            
+            <div class="space-y-4">
+                <input type="text" id="doc-title" placeholder="Tajuk Dokumen (cth: Resit Streamyx)" class="w-full bg-slate-900/50 p-4 rounded-2xl text-sm outline-none border border-slate-800 text-white">
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="date" id="doc-date" class="w-full bg-slate-900/50 p-4 rounded-2xl text-xs font-bold outline-none border border-slate-800 text-blue-400">
+                    <select id="doc-category" class="w-full bg-slate-900/50 p-4 rounded-2xl text-xs font-bold uppercase outline-none border border-slate-800 text-slate-400">
+                        <option value="EXPENSE">Belanja</option>
+                        <option value="ASSET">Aset</option>
+                        <option value="DONATION">Derma/Zakat</option>
+                    </select>
+                </div>
+
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">RM</span>
+                    <input type="number" id="doc-amount" placeholder="Jumlah" class="w-full bg-slate-900/50 p-4 pl-12 rounded-2xl text-sm outline-none border border-slate-800 text-white font-black">
+                </div>
+
+                <input type="text" id="doc-url" placeholder="URL Gambar/Fail (Link Firebase/Drive)" class="w-full bg-slate-900/50 p-4 rounded-2xl text-sm outline-none border border-slate-800 text-white">
+
+                <button onclick="saveDocument()" id="saveBtn" class="w-full bg-blue-600 py-5 rounded-3xl font-black text-xs uppercase tracking-[0.2em] active:scale-95 transition-all mt-4">Simpan Ke Shoebox</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import firebaseConfig from '../firebase-config.js';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.fs = { collection, addDoc, onSnapshot, query, orderBy, where, serverTimestamp };
+
+        loadVault();
+    </script>
+
+    <script>
+        async function saveDocument() {
+            const btn = document.getElementById('saveBtn');
+            const data = {
+                title: document.getElementById('doc-title').value.toUpperCase(),
+                date: document.getElementById('doc-date').value,
+                category: document.getElementById('doc-category').value,
+                amount: parseFloat(document.getElementById('doc-amount').value) || 0,
+                fileUrl: document.getElementById('doc-url').value,
+                createdAt: window.fs.serverTimestamp()
+            };
+
+            if(!data.title || !data.amount) return alert("Sila isi tajuk dan jumlah!");
+
+            btn.disabled = true;
+            btn.innerText = "UPLOADING...";
+
+            try {
+                await window.fs.addDoc(window.fs.collection(window.db, "shoebox_vault"), data);
+                closeUpload();
+                alert("Dokumen berjaya didigitalisasikan!");
+            } catch (e) { alert("Ralat: " + e.message); }
+            finally { btn.disabled = false; btn.innerText = "Simpan Ke Shoebox"; }
+        }
+
+        function loadVault() {
+            if(!window.db) return setTimeout(loadVault, 500);
+            
+            const category = document.getElementById('filter-category').value;
+            let q = window.fs.query(window.fs.collection(window.db, "shoebox_vault"), window.fs.orderBy("date", "desc"));
+            
+            if(category !== 'ALL') {
+                q = window.fs.query(window.fs.collection(window.db, "shoebox_vault"), window.fs.where("category", "==", category), window.fs.orderBy("date", "desc"));
+            }
+
+            window.fs.onSnapshot(q, snap => {
+                const container = document.getElementById('vault-container');
+                let totalRelief = 0;
+                let totalZakatBase = 0;
+                
+                if(snap.empty) {
+                    container.innerHTML = `<div class="glass p-12 rounded-[2rem] text-center border-dashed border-white/10"><p class="text-slate-600 text-[10px] font-bold uppercase tracking-widest">Tiada dokumen ditemui</p></div>`;
+                    return;
+                }
+
+                container.innerHTML = '';
+                snap.forEach(docSnap => {
+                    const d = docSnap.data();
+                    if(d.category === 'EXPENSE' || d.category === 'DONATION') totalRelief += d.amount;
+                    if(d.category === 'EXPENSE') totalZakatBase += d.amount; // Just as example logic
+
+                    container.innerHTML += `
+                        <div class="glass p-5 rounded-[2rem] flex justify-between items-center border-white/5 hover:border-blue-500/20 transition-all">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 border border-white/5">
+                                    <i class="fas ${d.category === 'ASSET' ? 'fa-box' : 'fa-receipt'} text-xs"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-black uppercase text-white text-left">${d.title}</p>
+                                    <p class="text-[8px] text-slate-500 font-bold uppercase tracking-widest text-left">${d.date} • ${d.category}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-black text-white italic">RM ${d.amount.toFixed(2)}</p>
+                                <a href="${d.fileUrl}" target="_blank" class="text-[8px] text-blue-500 font-bold uppercase tracking-tighter">Lihat Fail</a>
+                            </div>
+                        </div>`;
+                });
+
+                document.getElementById('total-tax-relief').innerText = `RM ${totalRelief.toLocaleString('ms-MY', {minimumFractionDigits: 2})}`;
+                document.getElementById('total-zakat').innerText = `RM ${(totalRelief * 0.025).toLocaleString('ms-MY', {minimumFractionDigits: 2})}`;
+            });
+        }
+
+        function openUpload() { document.getElementById('upload-modal').classList.remove('hidden'); }
+        function closeUpload() { document.getElementById('upload-modal').classList.add('hidden'); }
+    </script>
+</body>
+</html>
