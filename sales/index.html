@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ms" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Management | KETICK OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; min-height: 100vh; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-print, #receipt-print * { visibility: visible; }
+            #receipt-print { position: absolute; left: 0; top: 0; width: 100%; color: black !important; background: white !important; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="p-4 lg:p-10 no-scrollbar pb-20">
+
+    <div class="flex justify-between items-start mb-8 no-print">
+        <div>
+            <h1 class="text-2xl font-black tracking-tighter uppercase italic">Rekod <span class="text-blue-500">Jualan</span></h1>
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em]">Arsip Transaksi & Analistik</p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="exportToCSV()" class="bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-white p-3 px-4 rounded-2xl transition-all border border-emerald-500/20 group">
+                <i class="fas fa-file-csv mr-2"></i>
+                <span class="text-[10px] font-black uppercase">Export</span>
+            </button>
+            <button onclick="promptReset()" class="bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white p-3 px-4 rounded-2xl transition-all border border-red-500/20 group">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 no-print">
+        <div class="glass p-6 rounded-[2rem] border-l-4 border-blue-500">
+            <p class="text-[9px] text-slate-500 uppercase font-black tracking-widest mb-1">Jualan Kasar</p>
+            <h3 class="text-2xl font-black text-white italic tracking-tighter" id="filter-total">RM 0.00</h3>
+        </div>
+        <div class="glass p-6 rounded-[2rem] border-l-4 border-emerald-500">
+            <p class="text-[9px] text-slate-500 uppercase font-black tracking-widest mb-1">Transaksi</p>
+            <h3 class="text-2xl font-black text-white italic tracking-tighter" id="filter-count">0</h3>
+        </div>
+    </div>
+
+    <div class="glass p-8 rounded-[3rem] mb-8 no-print border border-white/5 relative overflow-hidden">
+        <p class="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em] mb-6">Trend Jualan Harian</p>
+        <div class="h-[200px] w-full">
+            <canvas id="salesChart"></canvas>
+        </div>
+    </div>
+
+    <div class="space-y-4 mb-6 no-print">
+        <div class="flex flex-wrap gap-2">
+            <button id="btn-today" onclick="fetchSales('today')" class="bg-blue-600 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-600/20 text-white">Hari Ini</button>
+            <button id="btn-all" onclick="fetchSales('all')" class="glass hover:bg-white/10 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400">Semua Rekod</button>
+        </div>
+        
+        <div class="relative max-w-md">
+            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+            <input type="text" id="salesSearch" onkeyup="filterSalesTable()" placeholder="Cari ID, barang, atau pelanggan..." 
+            class="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold focus:outline-none focus:border-blue-500/50 transition-all text-slate-200 uppercase tracking-widest">
+        </div>
+    </div>
+
+    <div class="overflow-x-auto rounded-[2.5rem] glass border border-white/5 no-print mb-10">
+        <table id="sales-table" class="w-full text-left border-collapse">
+            <thead class="bg-white/5 text-slate-500 text-[9px] uppercase font-black tracking-[0.2em]">
+                <tr>
+                    <th class="p-6">Masa / Invoice</th>
+                    <th class="p-6">Produk / Pelanggan</th>
+                    <th class="p-6">Method</th>
+                    <th class="p-6 text-right">Jumlah (RM)</th>
+                </tr>
+            </thead>
+            <tbody id="sales-table-body" class="text-[11px] font-bold divide-y divide-white/5">
+                <tr><td colspan="4" class="p-10 text-center text-slate-600 animate-pulse uppercase tracking-widest">Menarik data dari awan...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="receipt-modal" class="fixed inset-0 bg-[#020617]/95 backdrop-blur-md z-[500] hidden flex items-center justify-center p-4 no-print">
+        <div class="glass max-w-sm w-full rounded-[3rem] overflow-hidden p-10 relative border border-white/10 shadow-2xl">
+            <button onclick="closeReceipt()" class="absolute top-8 right-8 text-slate-500 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
+            <div id="receipt-content" class="text-center"></div>
+            <button onclick="window.print()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase tracking-[0.2em] py-5 rounded-[2rem] mt-8 transition-all flex items-center justify-center gap-3">
+                <i class="fas fa-print"></i> Cetak Salinan
+            </button>
+        </div>
+    </div>
+
+    <div id="receipt-print" class="hidden p-8 text-black bg-white font-mono text-sm leading-tight"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { 
+            getFirestore, collection, query, orderBy, onSnapshot, writeBatch, getDocs, doc, deleteDoc 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        
+        import firebaseConfig from '../firebase-config.js';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.fs = { collection, query, orderBy, onSnapshot, writeBatch, getDocs, doc, deleteDoc };
+        
+        console.log("SALES MODULE: Neural Data Link Active");
+        
+        // Mulakan load data
+        initChart();
+        setTimeout(() => fetchSales('today'), 500);
+    </script>
+
+    <script>
+        let rawData = []; 
+        let salesChart;
+
+        function initChart() {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            salesChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [{ 
+                    label: 'RM', data: [], borderColor: '#3b82f6', 
+                    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                    fill: true, tension: 0.4, borderWidth: 3, pointRadius: 2, pointBackgroundColor: '#3b82f6'
+                }]},
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#475569', font: { size: 9, weight: 'bold' } } },
+                        x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 9, weight: 'bold' } } }
+                    }
+                }
+            });
+        }
+
+        function updateChart(dataArray) {
+            if(!salesChart) return;
+            const sorted = [...dataArray].sort((a,b) => a.jsDate - b.jsDate);
+            salesChart.data.labels = sorted.map(d => d.time || "00:00");
+            salesChart.data.datasets[0].data = sorted.map(d => parseFloat(d.totalPrice || d.grandTotal || 0));
+            salesChart.update();
+        }
+
+        window.fetchSales = (period) => {
+            if(!window.db) return;
+            const tbody = document.getElementById('sales-table-body');
+            
+            document.querySelectorAll('button[id^="btn-"]').forEach(b => {
+                b.className = "glass hover:bg-white/10 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400";
+            });
+            document.getElementById('btn-' + period).className = "bg-blue-600 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-600/20 text-white";
+
+            const q = window.fs.query(window.fs.collection(window.db, "sales"), window.fs.orderBy("timestamp", "desc"));
+
+            window.fs.onSnapshot(q, (snapshot) => {
+                let totalRM = 0;
+                rawData = snapshot.docs.map(doc => {
+                    const d = doc.data();
+                    const ts = d.timestamp ? d.timestamp.toDate() : new Date();
+                    return { 
+                        id: doc.id, 
+                        ...d, 
+                        time: ts.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                        date: ts.toLocaleDateString('en-CA'),
+                        jsDate: ts
+                    };
+                });
+
+                const todayStr = new Date().toLocaleDateString('en-CA');
+                const filtered = period === 'today' ? rawData.filter(d => d.date === todayStr) : rawData;
+
+                if(filtered.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-700 font-black uppercase tracking-widest text-[10px]">Tiada Rekod Jualan</td></tr>`;
+                    document.getElementById('filter-total').innerText = "RM 0.00";
+                    document.getElementById('filter-count').innerText = "0";
+                    updateChart([]);
+                    return;
+                }
+
+                tbody.innerHTML = filtered.map((data, index) => {
+                    const val = parseFloat(data.totalPrice || data.grandTotal || 0);
+                    totalRM += val;
+                    const items = data.items ? data.items.map(i => i.name).join(', ') : 'Runcit';
+                    const cust = data.customer?.name || "WALK-IN";
+                    
+                    return `
+                        <tr class="hover:bg-white/5 transition-all sales-row cursor-pointer" onclick="showReceipt(${index})">
+                            <td class="p-6">
+                                <div class="text-white italic tracking-tighter">${data.time}</div>
+                                <div class="text-[8px] text-slate-600 uppercase font-black tracking-widest">${data.invNo || data.id.slice(-6)}</div>
+                            </td>
+                            <td class="p-6">
+                                <div class="text-slate-300 uppercase truncate max-w-[180px]">${items}</div>
+                                <div class="text-[8px] text-blue-500 font-black tracking-widest">${cust}</div>
+                            </td>
+                            <td class="p-6">
+                                <span class="bg-blue-500/10 text-blue-400 px-2 py-1 rounded-md text-[8px] uppercase font-black">${data.method || 'Tunai'}</span>
+                            </td>
+                            <td class="p-6 text-right font-black text-emerald-500 text-xs italic total-cell">RM ${val.toFixed(2)}</td>
+                        </tr>`;
+                }).join('');
+
+                document.getElementById('filter-total').innerText = `RM ${totalRM.toFixed(2)}`;
+                document.getElementById('filter-count').innerText = filtered.length;
+                updateChart(filtered);
+            });
+        };
+
+        function filterSalesTable() {
+            const input = document.getElementById("salesSearch").value.toUpperCase();
+            const rows = document.getElementsByClassName("sales-row");
+            let total = 0;
+            let count = 0;
+
+            for (let i = 0; i < rows.length; i++) {
+                if (rows[i].textContent.toUpperCase().includes(input)) {
+                    rows[i].style.display = "";
+                    const valStr = rows[i].querySelector(".total-cell").innerText.replace("RM ", "");
+                    total += parseFloat(valStr);
+                    count++;
+                } else rows[i].style.display = "none";
+            }
+            document.getElementById('filter-total').innerText = `RM ${total.toFixed(2)}`;
+            document.getElementById('filter-count').innerText = count;
+        }
+
+        function showReceipt(index) {
+            const data = rawData[index];
+            const modal = document.getElementById('receipt-modal');
+            const content = document.getElementById('receipt-content');
+            
+            const html = `
+                <div class="mb-6">
+                    <h2 class="text-2xl font-black italic tracking-tighter">KETICK<span class="text-blue-500">POS</span></h2>
+                    <p class="text-[9px] text-slate-500 font-black uppercase tracking-[0.3em]">Official Receipt</p>
+                </div>
+                <div class="space-y-3 mb-8 text-left border-y border-white/5 py-6">
+                    <div class="flex justify-between text-[10px] font-black uppercase"><span class="text-slate-500">Invoice</span> <span class="text-white">${data.invNo || data.id.slice(-8)}</span></div>
+                    <div class="flex justify-between text-[10px] font-black uppercase"><span class="text-slate-500">Tarikh</span> <span class="text-white">${data.date} | ${data.time}</span></div>
+                    <div class="flex justify-between text-[10px] font-black uppercase"><span class="text-slate-500">Pelanggan</span> <span class="text-blue-500">${data.customer?.name || "WALK-IN"}</span></div>
+                </div>
+                <div class="text-left mb-8 space-y-2">
+                    ${data.items ? data.items.map(i => `
+                        <div class="flex justify-between text-[10px] font-black uppercase tracking-tight">
+                            <span class="text-slate-400">${i.name}</span>
+                            <span class="text-white">RM ${parseFloat(i.price).toFixed(2)}</span>
+                        </div>
+                    `).join('') : ''}
+                </div>
+                <div class="pt-6 border-t-2 border-dashed border-white/10">
+                    <p class="text-[9px] font-black text-slate-500 uppercase mb-1">Total Amount</p>
+                    <h1 class="text-4xl font-black text-emerald-500 italic tracking-tighter">RM ${parseFloat(data.totalPrice || data.grandTotal).toFixed(2)}</h1>
+                </div>`;
+            
+            content.innerHTML = html;
+            modal.classList.remove('hidden');
+        }
+
+        function closeReceipt() { document.getElementById('receipt-modal').classList.add('hidden'); }
+
+        function exportToCSV() {
+            if (rawData.length === 0) return alert("Tiada data untuk di-export.");
+            let csv = "Invoice,Tarikh,Masa,Pelanggan,Items,Method,Jumlah(RM)\n";
+            rawData.forEach(r => {
+                const itemsStr = r.items ? r.items.map(i => i.name).join(' | ') : 'N/A';
+                const total = r.totalPrice || r.grandTotal;
+                csv += `${r.invNo || r.id},${r.date},${r.time},${r.customer?.name || 'WALK-IN'},"${itemsStr}",${r.method || 'Tunai'},${total}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Ketick_Sales_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        async function promptReset() {
+            const pass = prompt("Masukkan Password Owner untuk Reset:");
+            if (pass === "123") {
+                if (confirm("AMARAN: Ini akan memadam SEMUA rekod jualan. Teruskan?")) {
+                    const snap = await window.fs.getDocs(window.fs.collection(window.db, "sales"));
+                    const batch = window.fs.writeBatch(window.db);
+                    snap.docs.forEach(d => batch.delete(d.ref));
+                    await batch.commit();
+                    alert("Data telah dikosongkan.");
+                }
+            } else if (pass !== null) { alert("Password Salah!"); }
+        }
+    </script>
+</body>
+</html>
