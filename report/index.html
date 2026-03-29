@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ms" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics | KETICK OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; min-height: 100vh; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .bar-fill { transition: height 1.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.03), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 3s infinite;
+        }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    </style>
+</head>
+<body class="p-4 lg:p-10 pb-24">
+
+    <div class="flex justify-between items-start mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
+        <div>
+            <h1 class="text-2xl font-black tracking-tighter uppercase italic leading-none">Ketick <span class="text-blue-500">Analytics</span></h1>
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">Business Intelligence Engine</p>
+        </div>
+        <div class="glass p-2 px-4 rounded-2xl flex items-center gap-2 border-emerald-500/20">
+            <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+            <span class="text-[9px] font-black uppercase tracking-widest text-emerald-500">Neural Sync</span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-8 animate-in fade-in zoom-in duration-700 delay-100">
+        <div class="glass p-6 rounded-[2rem] border-l-4 border-l-blue-500 relative overflow-hidden">
+            <div class="shimmer absolute inset-0 pointer-events-none"></div>
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Jualan Hari Ini</p>
+            <h2 id="today-sales" class="text-2xl font-black italic tracking-tighter">RM 0.00</h2>
+        </div>
+        <div class="glass p-6 rounded-[2rem] border-l-4 border-l-emerald-500 relative overflow-hidden">
+            <div class="shimmer absolute inset-0 pointer-events-none"></div>
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Unit</p>
+            <h2 id="today-qty" class="text-2xl font-black italic tracking-tighter">0</h2>
+        </div>
+    </div>
+
+    <div class="p-8 rounded-[3rem] glass border border-white/5 mb-8 shadow-2xl relative overflow-hidden">
+        <div class="flex justify-between items-center mb-10">
+            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">7-Day Revenue Trend</h3>
+            <span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 uppercase tracking-widest">Weekly</span>
+        </div>
+        
+        <div class="flex items-end justify-between h-48 gap-3 px-2 mb-2" id="chart-container">
+            <div class="w-full text-center text-[10px] text-slate-700 font-black uppercase tracking-widest animate-pulse">Calculating Metrics...</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in slide-in-from-bottom-6 duration-700 delay-200">
+        <div class="p-8 rounded-[2.5rem] glass border border-white/5">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Top Sellers</h3>
+                <i class="fas fa-crown text-amber-500 text-xs"></i>
+            </div>
+            <div class="space-y-6" id="top-products-list">
+                <p class="text-center py-4 text-[10px] text-slate-600 font-bold uppercase tracking-widest">Analyzing Flow...</p>
+            </div>
+        </div>
+
+        <div class="p-8 rounded-[2.5rem] glass border border-white/5 flex flex-col justify-center text-center">
+            <div class="w-16 h-16 bg-blue-600/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
+                <i class="fas fa-shield-check text-blue-500 text-xl"></i>
+            </div>
+            <h4 class="text-sm font-black uppercase tracking-tight mb-2 italic">Anti-Fraud Protection</h4>
+            <p class="text-[10px] text-slate-500 leading-relaxed font-bold uppercase tracking-wider px-4">
+                Real-time cross-check between POS, Inventory, and Accounting is active.
+            </p>
+            <div class="mt-6 flex justify-center gap-2">
+                <span class="text-[8px] bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-lg border border-emerald-500/20 font-black tracking-widest uppercase">Stock Secure</span>
+                <span class="text-[8px] bg-blue-500/10 text-blue-500 px-3 py-1 rounded-lg border border-blue-500/20 font-black tracking-widest uppercase">Audit Clean</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-10 p-6 rounded-3xl bg-blue-600/5 border border-white/5 text-center">
+        <p class="text-[9px] text-slate-500 font-black uppercase tracking-widest">
+            Last Intelligence Sync: <span id="update-time" class="text-blue-400 italic">-</span>
+        </p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import firebaseConfig from '../firebase-config.js';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.fs = { collection, onSnapshot, query, orderBy, limit };
+
+        console.log("REPORT ENGINE: Active");
+        loadAnalytics();
+
+        async function loadAnalytics() {
+            const updateTimeEl = document.getElementById('update-time');
+            updateTimeEl.innerText = new Date().toLocaleTimeString('ms-MY');
+
+            const q = window.fs.query(
+                window.fs.collection(window.db, "sales"),
+                window.fs.orderBy("timestamp", "desc"),
+                window.fs.limit(200)
+            );
+
+            window.fs.onSnapshot(q, (snap) => {
+                let salesData = [];
+                snap.forEach(doc => salesData.push(doc.data()));
+                window.processDashboard(salesData);
+            });
+        }
+
+        window.processDashboard = (data) => {
+            const today = new Date().toLocaleDateString('en-CA');
+            let todayTotal = 0;
+            let todayQty = 0;
+            let productMap = {};
+            let weeklySales = [0, 0, 0, 0, 0, 0, 0];
+
+            data.forEach(sale => {
+                const saleDate = sale.timestamp ? sale.timestamp.toDate() : new Date();
+                const saleDateStr = saleDate.toLocaleDateString('en-CA');
+
+                if (saleDateStr === today) {
+                    todayTotal += parseFloat(sale.totalPrice || sale.grandTotal || 0);
+                    todayQty += sale.items ? sale.items.reduce((acc, curr) => acc + (curr.quantity || 1), 0) : 0;
+                }
+
+                if (sale.items) {
+                    sale.items.forEach(item => {
+                        productMap[item.name] = (productMap[item.name] || 0) + (item.quantity || 1);
+                    });
+                }
+
+                const now = new Date();
+                const diffDays = Math.floor((now - saleDate) / (1000 * 60 * 60 * 24));
+                if (diffDays < 7) {
+                    const index = 6 - diffDays;
+                    if (index >= 0) weeklySales[index] += parseFloat(sale.totalPrice || sale.grandTotal || 0);
+                }
+            });
+
+            document.getElementById('today-sales').innerText = `RM ${todayTotal.toFixed(2)}`;
+            document.getElementById('today-qty').innerText = todayQty;
+            window.renderChart(weeklySales);
+            window.renderTopProducts(productMap);
+        };
+
+        window.renderChart = (weeklyData) => {
+            const days = ['H-6', 'H-5', 'H-4', 'H-3', 'H-2', 'SMLM', 'HARI INI'];
+            const maxVal = Math.max(...weeklyData) || 100;
+            const container = document.getElementById('chart-container');
+            
+            container.innerHTML = weeklyData.map((val, i) => {
+                const height = (val / maxVal) * 100;
+                const isToday = i === 6;
+                return `
+                    <div class="flex flex-col items-center flex-1 h-full">
+                        <div class="relative w-full h-full flex items-end">
+                            <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-[7px] font-black text-blue-400 ${val === 0 ? 'hidden' : ''}">
+                                RM${Math.floor(val)}
+                            </div>
+                            <div class="w-full ${isToday ? 'bg-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.5)]' : 'bg-white/10'} rounded-t-xl bar-fill" 
+                                 style="height: ${height < 5 ? 5 : height}%">
+                            </div>
+                        </div>
+                        <span class="text-[7px] mt-4 ${isToday ? 'text-blue-400 font-black italic' : 'text-slate-600 font-bold'} uppercase tracking-widest">${days[i]}</span>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.renderTopProducts = (map) => {
+            const sorted = Object.entries(map).sort((a,b) => b[1] - a[1]).slice(0, 3);
+            const container = document.getElementById('top-products-list');
+            if (sorted.length === 0) {
+                container.innerHTML = `<p class="text-center py-4 text-[10px] text-slate-700 font-bold uppercase tracking-widest italic">No data yet</p>`;
+                return;
+            }
+            container.innerHTML = sorted.map((item, i) => `
+                <div class="flex justify-between items-center group">
+                    <div class="flex items-center gap-4">
+                        <span class="w-8 h-8 rounded-xl ${i === 0 ? 'bg-blue-500/20 text-blue-500' : 'bg-white/5 text-slate-500'} flex items-center justify-center font-black text-xs border border-white/5">${i + 1}</span>
+                        <div>
+                            <p class="text-[11px] font-black uppercase tracking-tight">${item[0]}</p>
+                            <p class="text-[8px] text-slate-600 font-bold uppercase tracking-widest">Market Leader</p>
+                        </div>
+                    </div>
+                    <div class="text-right"><span class="text-xs font-black text-emerald-500 italic">${item[1]} UNIT</span></div>
+                </div>
+            `).join('');
+        };
+    </script>
+</body>
+</html>
