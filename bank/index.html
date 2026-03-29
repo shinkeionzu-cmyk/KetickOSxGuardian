@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ms" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bank & Wallet | KETICK OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; min-height: 100vh; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .bank-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid rgba(59, 130, 246, 0.2); transition: all 0.3s ease; }
+        @keyframes alert-pulse { 0%, 100% { background: rgba(239, 68, 68, 0.1); } 50% { background: rgba(239, 68, 68, 0.3); } }
+        .anomaly-bg { animation: alert-pulse 1.5s infinite; border-color: rgba(239, 68, 68, 0.5) !important; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="p-4 lg:p-8 pb-24 no-scrollbar">
+
+    <div class="mb-8 flex justify-between items-center px-2">
+        <div>
+            <h1 class="text-2xl font-black tracking-tighter uppercase italic text-blue-500">Bank <span class="text-white">& Wallet</span></h1>
+            <p id="hq-name-display" class="text-slate-500 text-[9px] font-bold uppercase tracking-[0.2em]">Memuatkan Data HQ...</p>
+        </div>
+        <div id="integrity-status" class="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20 transition-all duration-500">
+            <div id="status-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span class="text-[8px] font-black text-emerald-500 uppercase tracking-widest" id="integrity-text">Sistem: Selamat</span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div class="p-6 rounded-[2.5rem] bank-card relative overflow-hidden group">
+            <div class="relative z-10">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="w-10 h-10 glass rounded-xl flex items-center justify-center text-amber-500 shadow-inner">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest italic">Physical Cash</span>
+                </div>
+                <h2 class="text-2xl font-black mb-4 text-white tracking-tight" id="cash-balance">RM 0.00</h2>
+                <div class="flex gap-2">
+                    <button onclick="quickAdjust('cash', 10)" class="bg-white/5 hover:bg-white/10 px-3 py-2 rounded-lg text-[9px] font-black transition border border-white/5">+10</button>
+                    <button onclick="quickAdjust('cash', -10)" class="bg-white/5 hover:bg-white/10 px-3 py-2 rounded-lg text-[9px] font-black transition border border-white/5">-10</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 rounded-[2.5rem] bank-card relative overflow-hidden border-l-4 border-l-blue-600">
+            <div class="relative z-10">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="w-10 h-10 glass rounded-xl flex items-center justify-center text-blue-500 shadow-inner">
+                        <i class="fas fa-university"></i>
+                    </div>
+                    <span id="bank-name-tag" class="text-[8px] font-black text-slate-500 uppercase tracking-widest italic text-right italic">Akaun Bank Bisnes</span>
+                </div>
+                <h2 class="text-2xl font-black mb-4 text-white tracking-tight" id="bank-balance">RM 0.00</h2>
+                <p id="acc-number-display" class="text-[9px] font-bold text-blue-400 tracking-widest uppercase">MEMUATKAN...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-6 rounded-[2.5rem] glass border border-white/5">
+        <h3 class="text-xs font-black mb-6 flex items-center gap-2 uppercase tracking-widest italic text-slate-400">
+            <i class="fas fa-fingerprint text-blue-500"></i> Audit Transfer Intelligence
+        </h3>
+        
+        <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-slate-900/50 p-3 rounded-2xl border border-white/5">
+                    <p class="text-[7px] font-black text-slate-500 uppercase mb-1">Audit Stamp</p>
+                    <p id="live-stamp" class="text-[9px] font-bold text-slate-300">Menunggu...</p>
+                </div>
+                <div class="bg-slate-900/50 p-3 rounded-2xl border border-white/5">
+                    <p class="text-[7px] font-black text-slate-500 uppercase mb-1">GPS Coordinates</p>
+                    <p id="live-coords" class="text-[9px] font-bold text-blue-400">Menjejak...</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <select id="from-account" class="w-full p-4 rounded-2xl bg-slate-900 border border-white/5 outline-none text-xs font-bold text-white uppercase focus:border-blue-500">
+                        <option value="cash">Pindahkan Dari TUNAI</option>
+                        <option value="bank">Pindahkan Dari BANK</option>
+                    </select>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-xs">RM</span>
+                        <input type="number" id="transfer-amount" placeholder="Jumlah" class="w-full p-4 pl-12 rounded-2xl bg-slate-900 border border-white/5 outline-none text-lg font-black text-white focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <div class="flex flex-col">
+                    <input type="file" id="receipt-upload" accept="image/*" capture="camera" class="hidden" onchange="previewReceipt(this)">
+                    <div onclick="document.getElementById('receipt-upload').click()" class="cursor-pointer bg-slate-900 border-2 border-dashed border-white/5 rounded-2xl h-32 flex flex-col items-center justify-center gap-2 hover:border-blue-500/50 transition-all overflow-hidden relative">
+                        <img id="receipt-preview" class="hidden w-full h-full object-cover">
+                        <div id="placeholder-box" class="text-center">
+                            <i class="fas fa-camera text-xl text-slate-700 mb-1"></i>
+                            <p class="text-[8px] font-black text-slate-600 uppercase">Snap Bukti Bank-In</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="executeTransfer()" id="execBtn" class="w-full p-5 bg-blue-600 hover:bg-blue-700 rounded-3xl font-black transition shadow-lg shadow-blue-900/20 uppercase tracking-[0.2em] text-[10px] active:scale-95">
+                Execute & Secure Audit
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+        import firebaseConfig from '../firebase-config.js';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        window.db = db;
+        window.storage = { ref, uploadBytes, getDownloadURL };
+        window.fs = { doc, onSnapshot, updateDoc, collection, addDoc, serverTimestamp };
+
+        initApp();
+    </script>
+
+    <script>
+        let currentCoords = "0,0";
+        let currentBalances = { cash: 0, bank: 0 };
+        let expectedProfit = 0; // Didapati dari modul Accounting nanti
+
+        function initApp() {
+            if(!window.db) return setTimeout(initApp, 500);
+            
+            // Sync Profile & Balances
+            window.fs.onSnapshot(window.fs.doc(window.db, "system_settings", "hq_profile"), doc => {
+                if(doc.exists()) {
+                    const d = doc.data();
+                    document.getElementById('hq-name-display').innerText = d.nama_syarikat || "KETICK OS HQ";
+                    document.getElementById('bank-name-tag').innerText = d.bank_name || "BANK";
+                    document.getElementById('acc-number-display').innerText = d.acc_number || "****";
+                }
+            });
+
+            window.fs.onSnapshot(window.fs.doc(window.db, "company_accounts", "main_account"), doc => {
+                if(doc.exists()) {
+                    currentBalances = doc.data();
+                    document.getElementById('cash-balance').innerText = `RM ${currentBalances.cash.toLocaleString('ms-MY', {minimumFractionDigits:2})}`;
+                    document.getElementById('bank-balance').innerText = `RM ${currentBalances.bank.toLocaleString('ms-MY', {minimumFractionDigits:2})}`;
+                }
+            });
+
+            startGPS();
+            setInterval(() => {
+                document.getElementById('live-stamp').innerText = new Date().toLocaleTimeString('ms-MY');
+            }, 1000);
+        }
+
+        async function quickAdjust(type, amount) {
+            const newBalance = Math.max(0, currentBalances[type] + amount);
+            await window.fs.updateDoc(window.fs.doc(window.db, "company_accounts", "main_account"), { [type]: newBalance });
+        }
+
+        async function executeTransfer() {
+            const amount = parseFloat(document.getElementById('transfer-amount').value);
+            const from = document.getElementById('from-account').value;
+            const to = from === 'cash' ? 'bank' : 'cash';
+            const file = document.getElementById('receipt-upload').files[0];
+            const btn = document.getElementById('execBtn');
+
+            if (!amount || amount <= 0 || !file) return alert("Jumlah dan Resit adalah Wajib!");
+
+            btn.disabled = true;
+            btn.innerText = "UPLOADING AUDIT BUKTI...";
+
+            try {
+                // Upload Bukti ke Firebase Storage
+                const storageRef = window.storage.ref(window.storage.storage, `audit_receipts/${Date.now()}.jpg`);
+                const uploadTask = await window.storage.uploadBytes(storageRef, file);
+                const downloadURL = await window.storage.getDownloadURL(uploadTask.ref);
+
+                // Rekod ke Live Tracking Audit
+                await window.fs.addDoc(window.fs.collection(window.db, "live_tracking"), {
+                    type: "TRANSFER",
+                    amount: amount,
+                    from: from,
+                    to: to,
+                    coords: currentCoords,
+                    receipt: downloadURL,
+                    timestamp: window.fs.serverTimestamp()
+                });
+
+                // Update Balances
+                await window.fs.updateDoc(window.fs.doc(window.db, "company_accounts", "main_account"), {
+                    [from]: currentBalances[from] - amount,
+                    [to]: currentBalances[to] + amount
+                });
+
+                alert("Pindahan Direkod & Disahkan!");
+                resetForm();
+            } catch (e) { alert("Ralat: " + e.message); }
+            finally { btn.disabled = false; btn.innerText = "Execute & Secure Audit"; }
+        }
+
+        function startGPS() {
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(pos => {
+                    currentCoords = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+                    document.getElementById('live-coords').innerText = currentCoords;
+                });
+            }
+        }
+
+        function previewReceipt(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    document.getElementById('receipt-preview').src = e.target.result;
+                    document.getElementById('receipt-preview').classList.remove('hidden');
+                    document.getElementById('placeholder-box').classList.add('hidden');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('transfer-amount').value = '';
+            document.getElementById('receipt-upload').value = '';
+            document.getElementById('receipt-preview').classList.add('hidden');
+            document.getElementById('placeholder-box').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
