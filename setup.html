@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ms" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>System Initialization | KETICK OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        
+        /* Premium Loader */
+        .loader { width: 50px; height: 50px; border: 3px solid rgba(59, 130, 246, 0.1); border-radius: 50%; border-top-color: #3b82f6; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .pulse-blue { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="w-full max-w-md p-10 glass rounded-[3rem] border border-white/5 shadow-2xl text-center relative overflow-hidden">
+        <div class="absolute -top-24 -right-24 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-600/10 rounded-full blur-3xl"></div>
+        
+        <div class="relative z-10">
+            <div class="w-20 h-20 bg-blue-600/10 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-blue-500/20 shadow-inner">
+                <i class="fas fa-microchip text-blue-500 text-3xl pulse-blue"></i>
+            </div>
+
+            <h2 class="text-3xl font-black tracking-tighter uppercase mb-2">Cloud <span class="text-blue-500 italic">Core</span></h2>
+            <div id="status-container" class="min-h-[60px] flex items-center justify-center mb-10">
+                <p id="status-msg" class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] leading-relaxed">
+                    Sedia untuk konfigurasi pangkalan data Cloud Firebase KETICK OS.
+                </p>
+            </div>
+
+            <div id="loader-container" class="hidden mb-10 flex justify-center">
+                <div class="loader"></div>
+            </div>
+            
+            <div class="space-y-3" id="action-area">
+                <button onclick="runSetup()" id="btn-setup" class="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-[1.8rem] font-black uppercase text-[11px] tracking-[0.2em] shadow-xl shadow-blue-600/20 transition-all active:scale-95 flex items-center justify-center gap-3">
+                    <i class="fas fa-bolt text-[10px]"></i> Mula Suntikan Data
+                </button>
+                
+                <button onclick="window.location.href='index.html'" id="btn-back" class="w-full py-5 glass text-slate-400 rounded-[1.8rem] font-black uppercase text-[10px] tracking-[0.2em] hover:text-white transition-all hidden border border-white/5 italic">
+                    Pergi Ke Dashboard <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, limit, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import firebaseConfig from './firebase-config.js';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.fs = { collection, addDoc, getDocs, limit, query, serverTimestamp };
+    </script>
+
+    <script>
+        async function runSetup() {
+            if(!window.db) return alert("Firebase belum bersedia. Cuba lagi dalam sesaat.");
+
+            const status = document.getElementById('status-msg');
+            const btn = document.getElementById('btn-setup');
+            const loader = document.getElementById('loader-container');
+            const btnBack = document.getElementById('btn-back');
+            
+            status.innerHTML = "<span class='text-blue-400'>⏳ SEDANG MENGHUBUNG KE CLOUD ENGINE...</span>";
+            btn.classList.add('hidden');
+            loader.classList.remove('hidden');
+
+            // Data Awal untuk Bisnis Azlan (Kasut & Digital)
+            const initialStock = [
+                { name: "KETICK PRO SNEAKERS BLACK", category: "KASUT", stock: 50, price: 189.90, sku: "KTC-SNK-01" },
+                { name: "URBAN STREETWEAR V2 WHITE", category: "KASUT", stock: 25, price: 245.00, sku: "KTC-SNK-02" },
+                { name: "PREMIUM SHOE CLEANER KIT", category: "AKSESORI", stock: 100, price: 35.00, sku: "KTC-ACC-01" },
+                { name: "KETICK DIGITAL CREDIT (100)", category: "DIGITAL", stock: 999, price: 10.00, sku: "DIG-001" },
+                { name: "AUTHORITY KEY V1", category: "SISTEM", stock: 10, price: 500.00, sku: "SYS-KEY-01" }
+            ];
+
+            try {
+                // 1. Semak integriti pangkalan data sedia ada
+                const q = window.fs.query(window.fs.collection(window.db, "inventory"), window.fs.limit(1));
+                const snapshot = await window.fs.getDocs(q);
+                
+                if (!snapshot.empty) {
+                    const confirmOverwrite = confirm("Rekod inventori dikesan dalam Cloud. Teruskan suntikan data tambahan?");
+                    if (!confirmOverwrite) {
+                        status.innerText = "PROSES DIBATALKAN OLEH OWNER.";
+                        loader.classList.add('hidden');
+                        btn.classList.remove('hidden');
+                        return;
+                    }
+                }
+
+                // 2. Suntikan Data secara Berperingkat
+                let count = 0;
+                for (let item of initialStock) {
+                    item.lastUpdated = window.fs.serverTimestamp();
+                    item.createdBy = "SYSTEM_ROOT";
+                    
+                    await window.fs.addDoc(window.fs.collection(window.db, "inventory"), item);
+                    count++;
+                    status.innerHTML = `<span class='text-emerald-400'>📦 MENYUNTIK DATA: ${count}/${initialStock.length}</span><br><span class='text-[8px]'>${item.name}</span>`;
+                }
+
+                // 3. Post-Setup Success
+                loader.classList.add('hidden');
+                status.innerHTML = "<b class='text-emerald-500 text-lg italic tracking-widest'>SUNTIKAN BERJAYA!</b><br><span class='text-[8px] text-slate-500'>DATABASE KETICK OS KINI AKTIF & BERAUTORITI</span>";
+                btnBack.classList.remove('hidden');
+                
+                // Tambah log Audit
+                await window.fs.addDoc(window.fs.collection(window.db, "audit_logs"), {
+                    staf: "SYSTEM_ROOT",
+                    peranan: "OWNER",
+                    aktiviti: "DATABASE_INITIALIZATION",
+                    detail: `Suntikan ${count} item inventori awal berjaya.`,
+                    tahap: "INFO",
+                    timestamp: window.fs.serverTimestamp()
+                });
+                
+            } catch (e) {
+                loader.classList.add('hidden');
+                status.innerHTML = `<b class='text-red-500'>RALAT KRITIKAL CORE:</b><br><span class='text-[9px]'>${e.message}</span>`;
+                btn.classList.remove('hidden');
+                btn.innerText = "CUBA LAGI";
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ms" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Personnel Control | KETICK OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        
+        .input-field { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 14px; color: white; width: 100%; outline: none; transition: 0.3s; font-size: 13px; font-weight: 600; }
+        .input-field:focus { border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
+        
+        .module-checkbox:checked + .module-card { border-color: #3b82f6; background: rgba(59, 130, 246, 0.1); transform: translateY(-2px); }
+        .module-checkbox:checked + .module-card i { color: #3b82f6; }
+        .module-checkbox:checked + .module-card span { color: white; }
+        .module-card { cursor: pointer; transition: all 0.3s; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 15px; background: rgba(255,255,255,0.02); }
+        
+        .btn-primary { background: #3b82f6; color: white; border-radius: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; transition: 0.3s; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.2); }
+        .btn-primary:active { scale: 0.95; box-shadow: none; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-item { animation: slideIn 0.4s ease-out forwards; }
+    </style>
+</head>
+<body class="p-6 pb-32 no-scrollbar">
+
+    <div class="mb-10 flex justify-between items-end">
+        <div>
+            <h1 class="text-3xl font-black tracking-tighter text-blue-500 uppercase leading-none">Personnel</h1>
+            <h1 class="text-3xl font-black tracking-tighter text-white uppercase mt-1">Registry</h1>
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mt-3 italic">Control Panel Level 1</p>
+        </div>
+        <div class="w-12 h-12 glass rounded-2xl flex items-center justify-center border border-blue-500/20">
+            <i class="fas fa-user-gear text-blue-500"></i>
+        </div>
+    </div>
+
+    <div id="form-container" class="p-8 glass rounded-[3rem] border border-white/5 mb-12 shadow-2xl relative overflow-hidden">
+        <h3 id="form-title" class="text-[10px] font-black mb-8 uppercase tracking-[0.3em] text-blue-400 flex items-center gap-2">
+            <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+            Daftar Profil Baru
+        </h3>
+        
+        <div class="space-y-8">
+            <div class="flex flex-col items-center">
+                <div class="relative group">
+                    <img id="previewAvatar" src="https://ui-avatars.com/api/?name=User&background=3b82f6&color=fff&bold=true" 
+                         class="w-28 h-28 rounded-[2.5rem] border-4 border-white/10 object-cover shadow-2xl transition-all group-hover:border-blue-500/50 group-hover:scale-105">
+                    <label for="imgUpload" class="absolute -bottom-2 -right-2 w-11 h-11 bg-blue-600 rounded-2xl flex items-center justify-center cursor-pointer shadow-xl border-4 border-[#020617] hover:bg-blue-500 active:scale-90 transition">
+                        <i class="fas fa-camera text-sm text-white"></i>
+                        <input type="file" id="imgUpload" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                    </label>
+                </div>
+            </div>
+
+            <div class="space-y-5">
+                <input type="hidden" id="edit-id">
+                
+                <div class="relative">
+                    <input type="text" id="new-name" class="input-field pl-12" placeholder="NAMA PENUH PERSONNEL">
+                    <i class="fas fa-signature absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 text-xs"></i>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="relative">
+                        <input type="number" id="new-pin" class="input-field pl-12" placeholder="4-DIGIT PIN" oninput="if(this.value.length > 4) this.value = this.value.slice(0, 4)">
+                        <i class="fas fa-lock-open absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 text-xs"></i>
+                    </div>
+                    <div class="relative">
+                        <select id="new-role" class="input-field pl-12 appearance-none" onchange="autoSelectModules()">
+                            <option value="staff">LEVEL 3: STAFF</option>
+                            <option value="admin">LEVEL 2: ADMIN</option>
+                            <option value="owner">LEVEL 1: OWNER</option>
+                        </select>
+                        <i class="fas fa-shield-halved absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 text-xs"></i>
+                    </div>
+                </div>
+
+                <div class="pt-4">
+                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 ml-2 italic">Konfigurasi Akses Modul:</p>
+                    <div class="grid grid-cols-2 gap-3" id="module-list">
+                        <label class="block">
+                            <input type="checkbox" value="pos" class="module-checkbox hidden">
+                            <div class="module-card"><i class="fas fa-cash-register text-slate-600"></i><span class="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Terminal POS</span></div>
+                        </label>
+                        <label class="block">
+                            <input type="checkbox" value="stock" class="module-checkbox hidden">
+                            <div class="module-card"><i class="fas fa-boxes-stacked text-slate-600"></i><span class="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Inventory</span></div>
+                        </label>
+                        <label class="block">
+                            <input type="checkbox" value="HR" class="module-checkbox hidden">
+                            <div class="module-card"><i class="fas fa-user-group text-slate-600"></i><span class="text-[9px] font-black uppercase text-slate-500 tracking-tighter">HR Management</span></div>
+                        </label>
+                        <label class="block">
+                            <input type="checkbox" value="Guardian" class="module-checkbox hidden">
+                            <div class="module-card"><i class="fas fa-user-secret text-slate-600"></i><span class="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Guardian</span></div>
+                        </label>
+                        <label class="block">
+                            <input type="checkbox" value="accounting" class="module-checkbox hidden">
+                            <div class="module-card"><i class="fas fa-calculator text-slate-600"></i><span class="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Accounting</span></div>
+                        </label>
+                        <label class="block">
+                            <input type="checkbox" value="setting" class="module-checkbox hidden">
+                            <div class="module-card"><i class="fas fa-users-gear text-slate-600"></i><span class="text-[9px] font-black uppercase text-slate-500 tracking-tighter">User System</span></div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-4">
+                    <button id="btn-submit" onclick="saveUser()" class="btn-primary flex-1 py-5 text-[11px]">Simpan Personnel</button>
+                    <button id="btn-cancel" onclick="resetForm()" class="hidden w-16 bg-slate-800 text-white rounded-[1.5rem] flex items-center justify-center active:scale-90 transition"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="user-registry-list" class="space-y-4">
+        <p class="text-center text-slate-600 text-[9px] font-black uppercase tracking-[0.4em] animate-pulse">Sinkronisasi Registry...</p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import firebaseConfig from './firebase-config.js'; // Pastikan path betul
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.fs = { doc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp };
+
+        initRegistry();
+    </script>
+
+    <script>
+        let base64Image = "";
+
+        function initRegistry() {
+            if(!window.db) return setTimeout(initRegistry, 500);
+            autoSelectModules();
+            loadUserRegistry();
+        }
+
+        function autoSelectModules() {
+            if(document.getElementById('edit-id').value) return; 
+            const role = document.getElementById('new-role').value;
+            const checkboxes = document.querySelectorAll('.module-checkbox');
+            checkboxes.forEach(cb => {
+                if (role === 'owner') cb.checked = true;
+                else if (role === 'admin') cb.checked = !(['setting'].includes(cb.value));
+                else cb.checked = (['pos', 'stock'].includes(cb.value));
+            });
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 200; 
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH; canvas.height = img.height * scaleSize;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    base64Image = canvas.toDataURL('image/jpeg', 0.6);
+                    document.getElementById('previewAvatar').src = base64Image;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function logToGuardian(action, detail) {
+            try {
+                await window.fs.addDoc(window.fs.collection(window.db, "audit_logs"), {
+                    staf: "SYSTEM_ROOT",
+                    peranan: "OWNER",
+                    aktiviti: "REGISTRY_UPDATE",
+                    detail: `${action}: ${detail}`,
+                    tahap: "AMARAN",
+                    timestamp: window.fs.serverTimestamp()
+                });
+            } catch(e) { console.error("Audit log failed"); }
+        }
+
+        async function saveUser() {
+            const id = document.getElementById('edit-id').value;
+            const name = document.getElementById('new-name').value.toUpperCase();
+            const pin = document.getElementById('new-pin').value;
+            const role = document.getElementById('new-role').value;
+            const allowedModules = [];
+            document.querySelectorAll('.module-checkbox:checked').forEach(cb => allowedModules.push(cb.value));
+
+            if(!name || pin.length !== 4) return alert("Sila lengkapkan Nama dan 4-Digit PIN!");
+
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true; btn.innerText = "Processing...";
+
+            const userData = {
+                name: name,
+                pin: pin,
+                role: role,
+                modules: allowedModules,
+                photoURL: base64Image,
+                updatedAt: window.fs.serverTimestamp()
+            };
+
+            try {
+                if(id) {
+                    await window.fs.updateDoc(window.fs.doc(window.db, "system_users", id), userData);
+                    await logToGuardian("EDIT_USER", name);
+                } else {
+                    userData.createdAt = window.fs.serverTimestamp();
+                    await window.fs.addDoc(window.fs.collection(window.db, "system_users"), userData);
+                    await logToGuardian("ADD_USER", name);
+                }
+                resetForm();
+            } catch (e) { alert("Security Error: " + e.message); }
+            finally { btn.disabled = false; btn.innerText = id ? "Update Personnel" : "Simpan Personnel"; }
+        }
+
+        function loadUserRegistry() {
+            const q = window.fs.query(window.fs.collection(window.db, "system_users"), window.fs.orderBy("role"));
+            window.fs.onSnapshot(q, snap => {
+                const list = document.getElementById('user-registry-list');
+                list.innerHTML = `<h3 class="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 pl-3 italic">Personnel Aktif (${snap.size})</h3>`;
+                
+                snap.forEach(docSnap => {
+                    const user = docSnap.data();
+                    const id = docSnap.id;
+                    const roleStyles = user.role === 'owner' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 
+                                      (user.role === 'admin' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 'bg-slate-500/10 text-slate-500 border-white/5');
+                    
+                    const displayImg = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=fff&bold=true`;
+                    
+                    // Prep data for edit
+                    const modsString = JSON.stringify(user.modules || []);
+                    
+                    list.innerHTML += `
+                        <div class="p-5 glass rounded-[2.5rem] flex justify-between items-center border border-white/5 animate-item shadow-xl active:scale-95 transition cursor-pointer" 
+                             onclick="startEdit('${id}', '${user.name}', '${user.pin}', '${user.role}', ${modsString}, '${user.photoURL || ""}')">
+                            <div class="flex items-center gap-5">
+                                <img src="${displayImg}" class="w-14 h-14 rounded-2xl object-cover border-2 border-white/10 shadow-lg">
+                                <div>
+                                    <p class="font-black text-white uppercase text-sm tracking-tighter leading-none mb-2">${user.name}</p>
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest border ${roleStyles}">${user.role}</span>
+                                        <span class="text-[8px] font-bold text-slate-700 tracking-[0.3em]">****</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="event.stopPropagation(); deleteUser('${id}', '${user.name}')" class="w-11 h-11 rounded-2xl bg-red-500/5 text-red-500/30 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-500/10">
+                                <i class="fas fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function startEdit(id, name, pin, role, modules, photo) {
+            document.getElementById('edit-id').value = id;
+            document.getElementById('new-name').value = name;
+            document.getElementById('new-pin').value = pin;
+            document.getElementById('new-role').value = role;
+            base64Image = photo || "";
+            document.getElementById('previewAvatar').src = photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82f6&color=fff&bold=true`;
+
+            document.querySelectorAll('.module-checkbox').forEach(cb => {
+                cb.checked = modules.includes(cb.value);
+            });
+
+            document.getElementById('form-title').innerHTML = `<span class="text-blue-500 italic">EDIT MODE:</span> ${name}`;
+            document.getElementById('btn-submit').innerText = "Update Personnel";
+            document.getElementById('btn-cancel').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetForm() {
+            document.getElementById('edit-id').value = "";
+            document.getElementById('new-name').value = "";
+            document.getElementById('new-pin').value = "";
+            document.getElementById('new-role').value = "staff";
+            document.getElementById('previewAvatar').src = "https://ui-avatars.com/api/?name=User&background=3b82f6&color=fff&bold=true";
+            base64Image = "";
+            document.getElementById('form-title').innerText = "Daftar Profil Baru";
+            document.getElementById('btn-submit').innerText = "Simpan Personnel";
+            document.getElementById('btn-cancel').classList.add('hidden');
+            autoSelectModules();
+        }
+
+        async function deleteUser(id, name) {
+            if(confirm(`AWAS: Padam rekod personnel ${name}? Tindakan ini tidak boleh diundur.`)) {
+                await window.fs.deleteDoc(window.fs.doc(window.db, "system_users", id));
+                await logToGuardian("DELETE_USER", name);
+                if(document.getElementById('edit-id').value === id) resetForm();
+            }
+        }
+    </script>
+</body>
+</html>

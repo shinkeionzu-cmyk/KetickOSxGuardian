@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ms" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KETICK OS | Next-Gen ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        
+        /* Fullscreen Module Mode */
+        .is-fullscreen header, .is-fullscreen #dashboard-view, .is-fullscreen .mobile-nav { display: none !important; }
+        .is-fullscreen #app-frame { display: block; position: fixed; inset: 0; width: 100vw; height: 100vh; border: none; z-index: 40; background: #020617; }
+        .is-fullscreen #floating-back { display: flex; }
+
+        /* Security Overlay */
+        #security-overlay { position: fixed; inset: 0; z-index: 9999; background: #020617; display: flex; align-items: center; justify-content: center; transition: 0.5s; }
+        .pin-input { width: 60px; height: 75px; text-align: center; font-size: 28px; font-weight: 800; border-radius: 20px; background: rgba(255, 255, 255, 0.03); border: 2px solid rgba(255, 255, 255, 0.05); color: white; outline: none; transition: 0.3s; }
+        .pin-input:focus { border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); box-shadow: 0 0 25px rgba(59, 130, 246, 0.2); }
+
+        /* Navigation */
+        .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; color: #475569; transition: 0.3s; }
+        .nav-btn.active { color: #3b82f6; }
+        .nav-btn span { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        
+        #floating-back { position: fixed; top: 20px; left: 20px; z-index: 100; width: 45px; height: 45px; background: #3b82f6; border-radius: 15px; display: none; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4); }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .animate-slide-up { animation: slideUp 0.5s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body id="master-body" class="p-5 md:p-10">
+
+    <div id="emergency-overlay" class="fixed inset-0 z-[10000] bg-red-950/95 backdrop-blur-xl hidden flex-col items-center justify-center text-center p-10">
+        <div class="w-40 h-40 bg-red-600 rounded-full flex items-center justify-center animate-ping absolute opacity-10"></div>
+        <i class="fas fa-shield-virus text-8xl text-red-500 mb-6 animate-pulse"></i>
+        <h1 class="text-4xl font-black text-white uppercase tracking-tighter">Protokol Keselamatan</h1>
+        <p class="text-red-400 font-bold uppercase tracking-[0.3em] mb-10 text-[10px]">Aktiviti Mencurigakan Dikesan</p>
+        <div class="glass p-8 rounded-[3rem] border-red-500/20 mb-10 min-w-[320px]">
+            <p id="alert-staf" class="text-xl font-black text-white">--</p>
+            <p class="text-[9px] text-red-500 font-black uppercase mt-2">Menjejak Lokasi Kakitangan...</p>
+        </div>
+        <button onclick="location.reload()" class="bg-white text-black px-10 py-4 rounded-2xl font-black uppercase text-xs shadow-xl">Sahkan Identiti Pemilik</button>
+    </div>
+
+    <button id="floating-back" onclick="loadModule('dashboard')" class="active:scale-90 transition">
+        <i class="fas fa-home text-white"></i>
+    </button>
+
+    <div id="security-overlay">
+        <div class="max-w-sm w-full p-10 rounded-[3.5rem] glass text-center border border-white/10 shadow-2xl animate-slide-up">
+            <div class="w-20 h-20 bg-blue-600/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-blue-500/20">
+                <i class="fas fa-fingerprint text-blue-500 text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-black mb-2 uppercase tracking-tighter">Ketick <span class="text-blue-500">Access</span></h2>
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-10">Sila masukkan PIN keselamatan anda</p>
+            
+            <div class="flex justify-center gap-3 mb-10">
+                <input type="password" inputmode="numeric" maxlength="1" class="pin-input border-white/10" autofocus>
+                <input type="password" inputmode="numeric" maxlength="1" class="pin-input border-white/10">
+                <input type="password" inputmode="numeric" maxlength="1" class="pin-input border-white/10">
+                <input type="password" inputmode="numeric" maxlength="1" class="pin-input border-white/10">
+            </div>
+            
+            <button onclick="verifyAccess()" class="w-full bg-blue-600 text-white font-black py-5 rounded-2xl uppercase text-[11px] tracking-[0.2em] shadow-xl shadow-blue-600/20 active:scale-95 transition">Verify Personnel</button>
+        </div>
+    </div>
+
+    <header class="p-6 flex justify-between items-center mb-10 glass rounded-[2.5rem] border border-white/5 shadow-2xl">
+        <div class="flex items-center gap-5">
+            <div class="relative">
+                <img id="userAvatar" src="https://ui-avatars.com/api/?name=User&background=3b82f6&color=fff" class="w-14 h-14 rounded-2xl border-2 border-white/10 object-cover shadow-lg">
+                <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-4 border-[#020617] rounded-full shadow-lg"></div>
+            </div>
+            <div>
+                <p id="userRoleBadge" class="text-[8px] font-black text-blue-500 uppercase tracking-[0.3em] mb-1 italic">Authorized Personnel</p>
+                <h2 id="userNameDisplay" class="text-xl font-black uppercase tracking-tighter text-white leading-none">Menghubung...</h2>
+            </div>
+        </div>
+        <button onclick="location.reload()" class="w-12 h-12 glass rounded-2xl flex items-center justify-center text-slate-500 hover:text-red-500 transition-all border border-white/5">
+            <i class="fas fa-power-off text-sm"></i>
+        </button>
+    </header>
+
+    <iframe id="app-frame" class="hidden"></iframe>
+
+    <main id="dashboard-view" class="space-y-8 pb-32 no-scrollbar animate-slide-up">
+        <div id="ai-strategist-card" class="hidden p-8 glass rounded-[3rem] border-l-[6px] border-blue-500 relative overflow-hidden bg-gradient-to-br from-blue-600/5 via-transparent to-transparent">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h3 class="text-[10px] font-black uppercase text-blue-500 tracking-[0.3em] mb-2">Ketick AI • Intelligence</h3>
+                    <h2 class="text-2xl font-black text-white leading-none uppercase tracking-tighter italic">Analisis Strategik</h2>
+                </div>
+                <div class="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center animate-pulse border border-blue-500/20">
+                    <i class="fas fa-brain text-blue-500"></i>
+                </div>
+            </div>
+            <div id="ai-insight-list" class="space-y-4">
+                <div class="flex gap-4 items-center p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <i class="fas fa-circle-notch fa-spin text-blue-500 text-xs"></i>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Menilai prestasi jualan hari ini...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-5">
+            <div class="p-8 rounded-[3rem] bg-gradient-to-br from-blue-600 to-blue-900 shadow-2xl shadow-blue-900/40 relative overflow-hidden active:scale-95 transition-all group" onclick="loadModule('pos')">
+                <h2 class="text-3xl font-black leading-tight text-white relative z-10 italic">Buka<br>POS</h2>
+                <p class="text-[10px] font-black text-blue-200 uppercase mt-3 relative z-10 tracking-widest opacity-80 group-hover:opacity-100 transition">Mula Transaksi Jualan</p>
+                <i class="fas fa-cash-register absolute right-[-15px] bottom-[-15px] text-9xl opacity-10 rotate-12 group-hover:scale-110 transition duration-500"></i>
+            </div>
+            
+            <div id="antiFraudBtn" class="p-8 rounded-[3rem] glass border-red-500/10 flex flex-col justify-center items-center text-center active:scale-95 transition-all hover:bg-red-500/5 group" onclick="loadModule('Anti-Fraud')">
+                <div class="w-16 h-16 bg-red-500/10 rounded-[2rem] flex items-center justify-center border border-red-500/20 mb-4 group-hover:scale-110 transition">
+                    <i class="fas fa-user-shield text-red-500 text-3xl"></i>
+                </div>
+                <h2 class="text-xl font-black tracking-tighter uppercase text-red-400 italic">Anti-Fraud</h2>
+                <p class="text-[9px] font-black text-slate-600 uppercase tracking-widest mt-1">Audit Tracking</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-5">
+            <div class="p-7 glass rounded-[2.5rem] border border-white/5 active:scale-95 transition shadow-xl" onclick="loadModule('stock')">
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Inventori Global</p>
+                <h4 id="dash-total-stock" class="text-3xl font-black text-white italic tracking-tighter">---</h4>
+            </div>
+            <div class="p-7 glass rounded-[2.5rem] border border-white/5 active:scale-95 transition shadow-xl" onclick="loadModule('sales')">
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Sales (Hari Ini)</p>
+                <h4 id="dash-today-sales" class="text-3xl font-black text-emerald-400 italic tracking-tighter">RM 0.00</h4>
+            </div>
+        </div>
+    </main>
+
+    <nav class="mobile-nav fixed bottom-6 left-6 right-6 h-20 glass border border-white/10 flex justify-around items-center z-50 rounded-[2.5rem] shadow-2xl p-2">
+        <button onclick="loadModule('dashboard')" id="nav-home" class="nav-btn active"><i class="fas fa-th-large text-xl"></i><span>Home</span></button>
+        <button onclick="loadModule('pos')" class="nav-btn"><i class="fas fa-cash-register text-xl"></i><span>POS</span></button>
+        <button onclick="loadModule('stock')" class="nav-btn"><i class="fas fa-boxes-stacked text-xl"></i><span>Stock</span></button>
+        <button onclick="toggleMoreMenu()" class="nav-btn"><i class="fas fa-compass text-xl"></i><span>Menu</span></button>
+    </nav>
+
+    <div id="more-menu" class="fixed inset-0 bg-[#020617]/95 z-[200] hidden p-10 backdrop-blur-3xl overflow-y-auto no-scrollbar rounded-[3.5rem] border border-white/5 m-5 shadow-2xl">
+        <div class="flex justify-between items-center mb-12">
+            <h3 class="text-3xl font-black uppercase tracking-tighter italic">Ketick <span class="text-blue-500 text-4xl">OS</span></h3>
+            <button onclick="toggleMoreMenu()" class="w-12 h-12 glass rounded-full text-red-500 flex items-center justify-center border border-red-500/20"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="grid grid-cols-3 gap-y-12 gap-x-6 text-center">
+            <div onclick="loadModule('HR')" class="module-item group">
+                <div class="w-20 h-20 glass rounded-[2.5rem] flex items-center justify-center text-emerald-400 text-3xl border border-white/5 mx-auto mb-4 group-active:scale-90 transition shadow-lg"><i class="fas fa-user-group"></i></div>
+                <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest">HR & Staff</span>
+            </div>
+            <div onclick="loadModule('accounting')" class="module-item group">
+                <div class="w-20 h-20 glass rounded-[2.5rem] flex items-center justify-center text-purple-400 text-3xl border border-white/5 mx-auto mb-4 group-active:scale-90 transition shadow-lg"><i class="fas fa-file-invoice-dollar"></i></div>
+                <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Accounting</span>
+            </div>
+            <div onclick="loadModule('setting/index.html')" class="module-item group">
+                <div class="w-20 h-20 glass rounded-[2.5rem] flex items-center justify-center text-blue-500 text-3xl border border-blue-500/10 mx-auto mb-4 group-active:scale-90 transition shadow-lg shadow-blue-500/5"><i class="fas fa-cog"></i></div>
+                <span class="text-[10px] font-black uppercase text-blue-400 tracking-widest">Settings</span>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, query, where, getDocs, onSnapshot, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        
+        // Import config yang akan dicipta oleh GitHub Action
+        import firebaseConfig from './firebase-config.js';
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Dedahkan fungsi ke global window supaya boleh digunakan oleh script non-module
+        window.db = db;
+        window.fs = { collection, query, where, getDocs, onSnapshot, Timestamp };
+        
+        console.log("KETICK OS: Neural Link Established");
+    </script>
+
+    <script>
+        let userRole = "staff";
+        let currentUserName = "User";
+        let idleTimer;
+
+        async function verifyAccess() {
+            let inputPin = ""; 
+            document.querySelectorAll('.pin-input').forEach(i => inputPin += i.value);
+            
+            if (!window.db) return alert("Sistem sedang memuat... Cuba sebentar lagi.");
+
+            try {
+                const q = window.fs.query(window.fs.collection(window.db, "system_users"), window.fs.where("pin", "==", inputPin));
+                const userQuery = await window.fs.getDocs(q);
+                
+                if (!userQuery.empty) {
+                    const userData = userQuery.docs[0].data();
+                    userRole = userData.role; 
+                    currentUserName = userData.name;
+                    window.allowedModules = userData.modules || []; 
+                    
+                    document.getElementById('userAvatar').src = userData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserName)}&background=3b82f6&color=fff&bold=true`;
+                    document.getElementById('userNameDisplay').innerText = currentUserName;
+                    document.getElementById('userRoleBadge').innerText = userRole.toUpperCase();
+                    document.getElementById('security-overlay').style.opacity = '0';
+                    setTimeout(() => document.getElementById('security-overlay').style.display = 'none', 500);
+                    
+                    if (userRole === 'owner' || userRole === 'admin') document.getElementById('ai-strategist-card').classList.remove('hidden');
+                    
+                    applyPermissions(); 
+                    startSync();
+                } else {
+                    alert("PIN TIDAK SAH!"); 
+                    document.querySelectorAll('.pin-input').forEach(i => i.value = "");
+                    document.querySelectorAll('.pin-input')[0].focus();
+                }
+            } catch (err) { alert("Ralat Akses: " + err.message); }
+        }
+
+        function applyPermissions() {
+            const allBtns = document.querySelectorAll('[onclick^="loadModule"]');
+            allBtns.forEach(btn => {
+                const match = btn.getAttribute('onclick').match(/'([^']+)'/);
+                if (match) {
+                    const moduleName = match[1];
+                    if (moduleName === 'dashboard') return;
+                    const isAllowed = window.allowedModules.includes(moduleName);
+                    btn.style.opacity = isAllowed ? '1' : '0.2';
+                    btn.style.pointerEvents = isAllowed ? 'auto' : 'none';
+                    if (!isAllowed && btn.closest('#more-menu')) btn.style.display = 'none';
+                }
+            });
+        }
+
+        function loadModule(name) {
+            const body = document.getElementById('master-body');
+            const frame = document.getElementById('app-frame');
+            const dash = document.getElementById('dashboard-view');
+            document.getElementById('more-menu').classList.add('hidden');
+            
+            if (name === 'dashboard') { 
+                body.classList.remove('is-fullscreen'); 
+                frame.classList.add('hidden');
+                dash.style.display = 'block'; 
+                frame.src = ""; 
+            } else { 
+                body.classList.add('is-fullscreen'); 
+                frame.classList.remove('hidden');
+                dash.style.display = 'none';
+                let path = name.includes('.html') ? name : `${name}/index.html`;
+                frame.src = path; 
+            }
+        }
+
+        function startSync() {
+            resetIdleTimer();
+            const today = new Date(); today.setHours(0,0,0,0);
+            
+            // Sync Sales Today
+            window.fs.onSnapshot(
+                window.fs.query(window.fs.collection(window.db, "sales"), window.fs.where("timestamp", ">=", window.fs.Timestamp.fromDate(today))),
+                (snap) => {
+                    let total = 0; 
+                    snap.forEach(doc => total += (parseFloat(doc.data().totalPrice) || 0));
+                    document.getElementById('dash-today-sales').innerText = `RM ${total.toFixed(2)}`;
+                }
+            );
+
+            // Sync Inventory
+            window.fs.onSnapshot(window.fs.collection(window.db, "inventory"), (snap) => {
+                let stockCount = 0;
+                snap.forEach(d => stockCount += (parseInt(d.data().stock) || 0));
+                document.getElementById('dash-total-stock').innerText = `${stockCount} SKU`;
+            });
+        }
+
+        function resetIdleTimer() { 
+            clearTimeout(idleTimer); 
+            if (document.getElementById('security-overlay').style.display === 'none') {
+                idleTimer = setTimeout(() => location.reload(), 300000); // 5 Minit Idle
+            }
+        }
+
+        function toggleMoreMenu() { document.getElementById('more-menu').classList.toggle('hidden'); }
+        
+        // PIN Input Flow Logic
+        document.querySelectorAll('.pin-input').forEach((input, index) => {
+            input.addEventListener('input', () => { 
+                if (input.value && index < 3) document.querySelectorAll('.pin-input')[index+1].focus(); 
+                if (index === 3 && input.value) verifyAccess(); 
+            });
+            input.addEventListener('keydown', (e) => { 
+                if (e.key === "Backspace" && !input.value && index > 0) document.querySelectorAll('.pin-input')[index-1].focus(); 
+            });
+        });
+
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => document.addEventListener(evt, resetIdleTimer, true));
+    </script>
+</body>
+</html>
