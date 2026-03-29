@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ms" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>KETICK POS PRO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: #f8fafc; height: 100vh; overflow: hidden; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .scroll-area { overflow-y: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        .scroll-area::-webkit-scrollbar { display: none; }
+        .pay-icon-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); color: #64748b; }
+        .pay-icon-btn.active { background: #10b981 !important; color: #020617 !important; transform: scale(1.1); box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
+        .num-key { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); aspect-ratio: 1/0.65; display: flex; align-items: center; justify-content: center; border-radius: 1.25rem; font-weight: 800; }
+        .num-key:active { background: #10b981; color: #020617; transform: scale(0.95); }
+        .product-card { transition: all 0.2s ease; border: 1px solid rgba(255, 255, 255, 0.03); }
+        .product-card:active { transform: scale(0.96); background: rgba(16, 185, 129, 0.05); }
+        .panic-active { background: #dc2626 !important; color: white !important; animation: shake 0.2s infinite; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(2px); } 75% { transform: translateX(-2px); } }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <div id="toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 glass border-emerald-500/50 px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-500 hidden z-[9999]">Item Ditambah</div>
+
+    <header class="p-5 flex justify-between items-center z-50 bg-[#020617]">
+        <div>
+            <h1 class="text-xl font-black tracking-tighter italic uppercase">Ketick<span class="text-emerald-500">POS</span></h1>
+            <p class="text-[8px] font-bold text-slate-500 uppercase tracking-[0.2em]">Terminal Jualan Pantas</p>
+        </div>
+        <button onclick="toggleCart()" class="relative w-12 h-12 glass rounded-2xl flex items-center justify-center border-emerald-500/20">
+            <i class="fas fa-shopping-basket text-emerald-500 text-lg"></i>
+            <span id="cart-count" class="absolute -top-1 -right-1 bg-emerald-500 text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#020617]">0</span>
+        </button>
+    </header>
+
+    <div class="px-5 mb-4">
+        <div class="relative">
+            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 text-sm"></i>
+            <input type="text" id="searchInput" oninput="filterProducts()" placeholder="Cari nama barang..." class="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-emerald-500/50 transition-all">
+        </div>
+    </div>
+
+    <main id="productGrid" class="flex-grow scroll-area px-5 grid grid-cols-2 gap-4 pb-28"></main>
+
+    <div id="payment-modal" class="fixed inset-0 bg-[#020617] hidden z-[300] flex flex-col">
+        <div class="p-6 flex justify-between items-center">
+            <button onclick="closePaymentModal()" class="w-10 h-10 glass rounded-full flex items-center justify-center"><i class="fas fa-arrow-left text-slate-400"></i></button>
+            <span class="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 italic">Kaunter Bayaran</span>
+            <div class="w-10"></div>
+        </div>
+        
+        <div class="px-8 py-4 text-center">
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Perlu Dibayar</p>
+            <h2 id="pay-grand-total" class="text-5xl font-black tracking-tighter text-white">RM 0.00</h2>
+        </div>
+
+        <div class="px-8 mb-4 space-y-3">
+            <div class="relative">
+                <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
+                <input type="text" id="cust-name" placeholder="NAMA PELANGGAN (Optional)" class="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-[10px] font-bold uppercase outline-none focus:border-emerald-500/50">
+            </div>
+            <div class="relative">
+                <i class="fas fa-phone absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
+                <input type="tel" id="cust-phone" placeholder="NO TEL (601...)" class="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-[10px] font-bold outline-none focus:border-emerald-500/50">
+            </div>
+        </div>
+
+        <div class="flex justify-center gap-6 my-4">
+            <button onclick="setMethod('Tunai')" id="btnTunai" class="pay-icon-btn active w-16 h-16 glass rounded-2xl flex items-center justify-center"><i class="fas fa-money-bill-wave text-xl"></i></button>
+            <button onclick="setMethod('QR')" id="btnQR" class="pay-icon-btn w-16 h-16 glass rounded-2xl flex items-center justify-center"><i class="fas fa-qrcode text-xl"></i></button>
+            <button onclick="setMethod('Kad')" id="btnKad" class="pay-icon-btn w-16 h-16 glass rounded-2xl flex items-center justify-center"><i class="fas fa-credit-card text-xl"></i></button>
+        </div>
+
+        <div class="flex-grow scroll-area px-8 pb-8">
+            <div class="grid grid-cols-3 gap-3">
+                <button onclick="calcInput('1')" class="num-key">1</button>
+                <button onclick="calcInput('2')" class="num-key">2</button>
+                <button onclick="calcInput('3')" class="num-key">3</button>
+                <button onclick="calcInput('4')" class="num-key">4</button>
+                <button onclick="calcInput('5')" class="num-key">5</button>
+                <button onclick="calcInput('6')" class="num-key">6</button>
+                <button onclick="calcInput('7')" class="num-key">7</button>
+                <button onclick="calcInput('8')" class="num-key">8</button>
+                <button onclick="calcInput('9')" class="num-key">9</button>
+                <button onclick="calcClear()" class="num-key text-red-500 text-[10px] font-black uppercase tracking-widest">Clear</button>
+                <button onclick="calcInput('0')" class="num-key">0</button>
+                <button onclick="calcInput('00')" class="num-key text-sm">00</button>
+            </div>
+            
+            <div class="mt-4 glass p-4 rounded-2xl flex justify-between items-center border-emerald-500/10">
+                <div class="text-left"><p class="text-[8px] font-bold text-slate-500 uppercase">Diterima</p><p id="calc-display" class="text-xl font-black text-emerald-400">RM 0.00</p></div>
+                <div class="text-right"><p class="text-[8px] font-bold text-slate-500 uppercase">Baki</p><p id="calc-change" class="text-xl font-black text-white italic">RM 0.00</p></div>
+            </div>
+
+            <button id="btnFinalCheckout" onclick="finalCheckout()" class="w-full bg-emerald-600 h-16 rounded-[2rem] mt-6 font-black uppercase text-xs tracking-widest shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">Sahkan Jualan</button>
+        </div>
+    </div>
+
+    <div id="cart-overlay" class="fixed inset-0 bg-[#020617] translate-y-full transition-transform duration-500 z-[200] flex flex-col">
+        <div class="p-6 flex justify-between items-center">
+            <h2 class="text-2xl font-black italic">BAKUL <span class="text-emerald-500">JUALAN</span></h2>
+            <button onclick="toggleCart()" class="w-10 h-10 glass rounded-full flex items-center justify-center"><i class="fas fa-times text-slate-400 text-sm"></i></button>
+        </div>
+        <div id="cart-items" class="flex-grow scroll-area px-6 space-y-3"></div>
+        <div class="p-8 glass rounded-t-[3.5rem] border-t border-white/5 bg-[#020617] space-y-4">
+            <button onclick="triggerPanic()" id="panicBtn" class="w-full p-4 bg-red-600/10 border border-red-500/20 rounded-2xl font-black text-red-500 uppercase tracking-widest text-[9px] flex items-center justify-center gap-2 transition-all">
+                <i class="fas fa-exclamation-triangle animate-pulse"></i> Emergency Panic
+            </button>
+            <div class="flex justify-between items-center px-2">
+                <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Total Harga</span>
+                <span id="total-price" class="text-3xl font-black text-white italic tracking-tighter">RM 0.00</span>
+            </div>
+            <button onclick="showPaymentModal()" class="w-full bg-emerald-600 h-16 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-emerald-900/20">Bayar Sekarang</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import firebaseConfig from '../firebase-config.js';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Global bridge
+        window.db = db;
+        window.fs = { collection, addDoc, onSnapshot, query, where, getDocs, serverTimestamp };
+
+        loadProducts();
+    </script>
+
+    <script>
+        let cart = [];
+        let allProducts = [];
+        let paymentMethod = 'Tunai';
+        let paidAmount = 0;
+        let inputStr = "";
+
+        function loadProducts() {
+            if(!window.db) return setTimeout(loadProducts, 500);
+            window.fs.onSnapshot(window.fs.collection(window.db, "inventory"), (snap) => {
+                allProducts = [];
+                snap.forEach(doc => allProducts.push({ id: doc.id, ...doc.data() }));
+                renderProducts(allProducts);
+            });
+        }
+
+        function renderProducts(products) {
+            const grid = document.getElementById('productGrid');
+            if (products.length === 0) {
+                grid.innerHTML = `<div class="col-span-2 text-center py-20 text-slate-700 text-[10px] font-black uppercase tracking-widest">Tiada Stok</div>`;
+                return;
+            }
+            grid.innerHTML = products.map(p => `
+                <div onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.price})" class="product-card p-4 glass rounded-[2.5rem] flex flex-col items-center text-center">
+                    <div class="w-full aspect-square rounded-[2rem] overflow-hidden mb-3 bg-white/5 border border-white/5">
+                        <img src="${p.image || 'https://via.placeholder.com/150'}" class="w-full h-full object-cover grayscale-[20%]">
+                    </div>
+                    <h3 class="font-black text-[9px] w-full truncate uppercase text-slate-300 mb-1 tracking-tight">${p.name}</h3>
+                    <p class="text-emerald-500 font-black text-xs italic">RM ${parseFloat(p.price || 0).toFixed(2)}</p>
+                </div>
+            `).join('');
+        }
+
+        function addToCart(id, name, price) {
+            cart.push({ id, name, price: parseFloat(price) });
+            updateUI();
+            showToast(`${name} Ditambah`);
+        }
+
+        function updateUI() {
+            const total = cart.reduce((acc, item) => acc + item.price, 0);
+            document.getElementById('cart-count').innerText = cart.length;
+            document.getElementById('total-price').innerText = `RM ${total.toFixed(2)}`;
+            document.getElementById('pay-grand-total').innerText = `RM ${total.toFixed(2)}`;
+            
+            const container = document.getElementById('cart-items');
+            container.innerHTML = cart.map((item, i) => `
+                <div class="flex justify-between items-center p-5 glass rounded-[2rem] border border-white/5">
+                    <div class="flex-grow pr-4">
+                        <p class="text-[9px] font-black uppercase text-white tracking-tight">${item.name}</p>
+                        <p class="text-emerald-500 font-black text-xs italic">RM ${item.price.toFixed(2)}</p>
+                    </div>
+                    <button onclick="removeFromCart(${i})" class="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function removeFromCart(index) { cart.splice(index, 1); updateUI(); }
+        function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 1500); }
+        function toggleCart() { document.getElementById('cart-overlay').classList.toggle('translate-y-full'); }
+        function showPaymentModal() { if(cart.length > 0) document.getElementById('payment-modal').classList.remove('hidden'); updateCalcUI(); }
+        function closePaymentModal() { document.getElementById('payment-modal').classList.add('hidden'); }
+        
+        function setMethod(m) { 
+            paymentMethod = m; 
+            document.querySelectorAll('.pay-icon-btn').forEach(b => b.classList.remove('active')); 
+            document.getElementById(`btn${m}`).classList.add('active'); 
+            if(m !== 'Tunai') {
+                paidAmount = cart.reduce((acc, item) => acc + item.price, 0);
+            } else { calcClear(); }
+            updateCalcUI(); 
+        }
+
+        function calcInput(num) { inputStr += num; paidAmount = parseFloat(inputStr) / 100; updateCalcUI(); }
+        function calcClear() { inputStr = ""; paidAmount = 0; updateCalcUI(); }
+        
+        function updateCalcUI() { 
+            const total = cart.reduce((acc, item) => acc + item.price, 0); 
+            document.getElementById('calc-display').innerText = `RM ${paidAmount.toFixed(2)}`; 
+            const change = paidAmount - total; 
+            const changeEl = document.getElementById('calc-change'); 
+            changeEl.innerText = `RM ${change > 0 ? change.toFixed(2) : "0.00"}`; 
+            changeEl.style.color = change >= 0 ? "#10b981" : "#ef4444"; 
+        }
+
+        async function triggerPanic() {
+            if(!confirm("HANTAR ISYARAT KECEMASAN KE HQ?")) return;
+            const btn = document.getElementById('panicBtn');
+            btn.classList.add('panic-active');
+            btn.innerText = "SIGNAL SENT!";
+            await window.fs.addDoc(window.fs.collection(window.db, "system_alerts"), {
+                type: "PANIC", staf: "ADMIN_POS", timestamp: window.fs.serverTimestamp(), status: "ACTIVE"
+            });
+        }
+
+        async function finalCheckout() {
+            const total = cart.reduce((acc, item) => acc + item.price, 0);
+            const cName = document.getElementById('cust-name').value.trim() || "WALK-IN";
+            const cPhone = document.getElementById('cust-phone').value.trim();
+
+            if (paidAmount < total && paymentMethod === 'Tunai') return alert("Bayaran Tak Cukup!");
+            const btn = document.getElementById('btnFinalCheckout');
+            btn.disabled = true; btn.innerText = "SYNCING...";
+
+            try {
+                const invNo = "POS-" + Date.now().toString().slice(-6);
+
+                // 1. CRM Sync
+                if (cPhone) {
+                    const q = window.fs.query(window.fs.collection(window.db, "contacts"), window.fs.where("phone", "==", cPhone));
+                    const snap = await window.fs.getDocs(q);
+                    if (snap.empty) {
+                        await window.fs.addDoc(window.fs.collection(window.db, "contacts"), { name: cName, phone: cPhone, type: "Pelanggan", createdAt: window.fs.serverTimestamp() });
+                    }
+                }
+
+                // 2. Sales & Accounting Sync
+                await window.fs.addDoc(window.fs.collection(window.db, "sales"), {
+                    invNo, items: cart, totalPrice: total, method: paymentMethod, 
+                    customer: { name: cName, phone: cPhone }, timestamp: window.fs.serverTimestamp()
+                });
+
+                await window.fs.addDoc(window.fs.collection(window.db, "accounting"), {
+                    desc: `POS SALE: ${invNo} (${cName})`, amount: total, type: 'income', createdAt: window.fs.serverTimestamp()
+                });
+
+                // 3. WhatsApp Redirect
+                if (cPhone) {
+                    const itemDetails = cart.map(i => `• ${i.name} (RM${i.price.toFixed(2)})`).join('%0A');
+                    const msg = `*KETICK POS RECEIPT*%0A------------------%0A*Pelanggan:* ${cName}%0A*No Inv:* ${invNo}%0A%0A*ITEMS:*%0A${itemDetails}%0A%0A*TOTAL: RM${total.toFixed(2)}*%0A------------------%0ATerima Kasih!`;
+                    window.open(`https://wa.me/${cPhone.replace(/\D/g, '')}?text=${msg}`, '_blank');
+                }
+
+                alert("Jualan Berjaya & Direkod!");
+                cart = []; calcClear(); updateUI(); closePaymentModal(); toggleCart();
+                document.getElementById('cust-name').value = ""; document.getElementById('cust-phone').value = "";
+            } catch (e) { alert("Error: " + e.message); } 
+            finally { btn.disabled = false; btn.innerText = "Sahkan Jualan"; }
+        }
+
+        function filterProducts() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            renderProducts(allProducts.filter(p => p.name.toLowerCase().includes(q)));
+        }
+    </script>
+</body>
+</html>
