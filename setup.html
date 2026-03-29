@@ -79,6 +79,7 @@
             loader.classList.remove('hidden');
 
             try {
+                // 1. Semak integriti pangkalan data
                 const q = query(collection(db, "inventory"), limit(1));
                 const snapshot = await getDocs(q);
                 
@@ -92,25 +93,37 @@
                     }
                 }
 
+                // 2. Suntikan Data Inventori
                 let count = 0;
                 for (let item of initialStock) {
                     item.lastUpdated = serverTimestamp();
                     item.createdBy = "SYSTEM_ROOT";
-                    
                     await addDoc(collection(db, "inventory"), item);
                     count++;
                     status.innerHTML = `<span class='text-emerald-400 font-bold'>📦 MENYUNTIK DATA: ${count}/${initialStock.length}</span><br><span class='text-[8px]'>${item.name}</span>`;
                 }
 
+                // 3. Suntikan User Owner (Azlan Mymo)
+                status.innerHTML = "<span class='text-blue-400 font-bold'>🔑 MENDAFTAR OWNER PERSONNEL...</span>";
+                const adminUser = {
+                    name: "AZLAN MYMO",
+                    pin: "1234", // Sila tukar PIN ini selepas berjaya masuk
+                    role: "owner",
+                    modules: ["pos", "stock", "HR", "Guardian", "accounting", "setting"],
+                    createdAt: serverTimestamp()
+                };
+                await addDoc(collection(db, "system_users"), adminUser);
+
+                // 4. Post-Setup Success
                 loader.classList.add('hidden');
-                status.innerHTML = "<b class='text-emerald-500 text-lg italic tracking-widest'>SUNTIKAN BERJAYA!</b><br><span class='text-[8px] text-slate-500'>DATABASE KETICK OS KINI AKTIF & BERAUTORITI</span>";
+                status.innerHTML = "<b class='text-emerald-500 text-lg italic tracking-widest'>SUNTIKAN BERJAYA!</b><br><span class='text-[8px] text-slate-500'>USER OWNER & DATABASE KINI AKTIF</span>";
                 btnBack.classList.remove('hidden');
                 
                 await addDoc(collection(db, "audit_logs"), {
                     staf: "SYSTEM_ROOT",
                     peranan: "OWNER",
                     aktiviti: "DATABASE_INITIALIZATION",
-                    detail: `Suntikan ${count} item inventori awal berjaya.`,
+                    detail: `Suntikan ${count} item & pendaftaran Owner berjaya.`,
                     tahap: "INFO",
                     timestamp: serverTimestamp()
                 });
