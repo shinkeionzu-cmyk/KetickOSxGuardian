@@ -1,0 +1,25 @@
+name: Deploy to Firebase Hosting
+on:
+  push:
+    branches:
+      - main # Tukar ke 'master' jika itu nama branch utama anda
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Create Firebase Config File
+        run: |
+          echo "const firebaseConfig = ${{ secrets.FIREBASE_CONFIG }}; export default firebaseConfig;" > firebase-config.js
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}'
+          channelId: live
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+
